@@ -1,3 +1,4 @@
+=========
 PyScreeze
 =========
 
@@ -34,7 +35,7 @@ There is also an optional `region` keyword argument, if you do not want a screen
 The Locate Functions
 ====================
 
-You can visually locate something on the screen if you have an image file of it. You can call the `locateOnScreen('calc7key.png')` function to get the screen coordinates of the 7 button for a calculator app. The return value is a 4-integer tuple: (left, top, width, height). This tuple can be passed to `center()` to get the X and Y coordinates at the center of this region. If the image can't be found on the screen, `locateOnScreen()` returns `None`.
+You can call the `locateOnScreen('calc7key.png')` function to get the screen coordinates of the 7 button for a calculator app. The return value is a 4-integer tuple: (left, top, width, height). This tuple can be passed to `center()` to get the X and Y coordinates at the center of this region. If the image can't be found on the screen, `locateOnScreen()` returns `None`.
 
     >>> import pyscreeze
     >>> button7location = pyscreeze.locateOnScreen('calc7key.png')
