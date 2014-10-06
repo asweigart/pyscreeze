@@ -140,6 +140,9 @@ def _screenshot_osx(imageFilename=None, region=None):
         assert len(region) == 4, 'region argument must be a tuple of four ints'
         region = [int(x) for x in region]
         im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+    else:
+        # force loading before unlinking, Image.open() is lazy
+        im.load()
 
     if imageFilename is None:
         os.unlink(tmpFilename)
@@ -161,6 +164,9 @@ def _screenshot_linux(imageFilename=None, region=None):
             assert len(region) == 4, 'region argument must be a tuple of four ints'
             region = [int(x) for x in region]
             im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+        else:
+            # force loading before unlinking, Image.open() is lazy
+            im.load()
 
         if imageFilename is None:
             os.unlink(tmpFilename)
