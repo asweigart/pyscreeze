@@ -108,8 +108,13 @@ def locateOnScreen(image, grayscale=False, region=None):
 def locateAllOnScreen(image, grayscale=False, limit=None, region=None):
     screenshotIm = screenshot()
     retVal = locateAll(image, screenshotIm, grayscale, limit)
-    if 'fp' in dir(screenshotIm):
-        screenshotIm.fp.close() # Screenshots on Windows won't have an fp since they came from ImageGrab, not a file.
+    try:
+        screenshotIm.fp.close() 
+    except AttributeError:
+        # Screenshots on Windows won't have an fp since they came from 
+        # ImageGrab, not a file. Screenshots on Linux will have fp set
+        # to None since the file has been unlinked
+        pass
     return retVal
 
 
