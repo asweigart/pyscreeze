@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='PyScreeze',
-    version='0.1.1',
+    version='0.1.2',
     url='https://github.com/asweigart/pyscreeze',
     author='Al Sweigart',
     author_email='al@inventwithpython.com',

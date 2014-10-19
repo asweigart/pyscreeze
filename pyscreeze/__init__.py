@@ -10,7 +10,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 import datetime
 import os
@@ -114,7 +114,11 @@ def locateAllOnScreen(image, grayscale=False, limit=None, region=None):
 
 
 def locateCenterOnScreen(image, grayscale=False, region=None):
-    return center(locateOnScreen(image, grayscale))
+    coords = locateOnScreen(image, grayscale)
+    if coords is None:
+        return None
+    else:
+        return center(coords)
 
 
 def _screenshot_win32(imageFilename=None, region=None):
