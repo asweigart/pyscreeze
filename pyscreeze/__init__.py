@@ -10,12 +10,13 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 import datetime
 import os
 import subprocess
 import sys
+import errno
 from PIL import Image
 from PIL import ImageOps
 
@@ -24,11 +25,17 @@ RUNNING_PYTHON_2 = sys.version_info[0] == 2
 scrotExists = False
 try:
     if sys.platform not in ('java', 'darwin', 'win32'):
-        whichProc = subprocess.Popen(['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        scrotExists = whichProc.wait() == 0
-except:
-    # if there is no "which" program to find scrot, then assume there is no scrot.
-    pass
+        with open(os.devnull, 'w') as devnull:
+            whichProc = subprocess.Popen(
+                ['which', 'scrot'], stdout=devnull, stderr=devnull)
+            scrotExists = whichProc.wait() == 0
+except OSError as ex:
+    if ex.errno == errno.ENOENT:
+        # if there is no "which" program to find scrot, then assume there
+        # is no scrot.
+        pass
+    else:
+        raise
 
 def locateAll(needleImage, haystackImage, grayscale=False, limit=None, region=None):
     needleFileObj = None
@@ -100,16 +107,26 @@ def locate(needleImage, haystackImage, grayscale=False, region=None):
 def locateOnScreen(image, grayscale=False, region=None):
     screenshotIm = screenshot()
     retVal = locate(image, screenshotIm, grayscale)
-    if 'fp' in dir(screenshotIm) and screenshotIm.fp is not None: # NOTE - Added to fix issue #3 on OS X. Unsure if this leads to files being left open.
-        screenshotIm.fp.close() # Screenshots on Windows won't have an fp since they came from ImageGrab, not a file.
+    try:
+        screenshotIm.fp.close()
+    except AttributeError:
+        # Screenshots on Windows won't have an fp since they came from
+        # ImageGrab, not a file. Screenshots on Linux will have fp set
+        # to None since the file has been unlinked
+        pass
     return retVal
 
 
 def locateAllOnScreen(image, grayscale=False, limit=None, region=None):
     screenshotIm = screenshot()
     retVal = locateAll(image, screenshotIm, grayscale, limit)
-    if 'fp' in dir(screenshotIm) and screenshotIm.fp is not None: # NOTE - Added to fix issue #3 on OS X. Unsure if this leads to files being left open.
-        screenshotIm.fp.close() # Screenshots on Windows won't have an fp since they came from ImageGrab, not a file.
+    try:
+        screenshotIm.fp.close()
+    except AttributeError:
+        # Screenshots on Windows won't have an fp since they came from
+        # ImageGrab, not a file. Screenshots on Linux will have fp set
+        # to None since the file has been unlinked
+        pass
     return retVal
 
 
@@ -144,6 +161,9 @@ def _screenshot_osx(imageFilename=None, region=None):
         assert len(region) == 4, 'region argument must be a tuple of four ints'
         region = [int(x) for x in region]
         im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+    else:
+        # force loading before unlinking, Image.open() is lazy
+        im.load()
 
     if imageFilename is None:
         os.unlink(tmpFilename)
@@ -165,6 +185,9 @@ def _screenshot_linux(imageFilename=None, region=None):
             assert len(region) == 4, 'region argument must be a tuple of four ints'
             region = [int(x) for x in region]
             im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+        else:
+            # force loading before unlinking, Image.open() is lazy
+            im.load()
 
         if imageFilename is None:
             os.unlink(tmpFilename)
