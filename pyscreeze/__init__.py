@@ -53,6 +53,11 @@ def locateAll(needleImage, haystackImage, grayscale=False, limit=None, region=No
     if grayscale:
         needleImage = ImageOps.grayscale(needleImage)
         haystackImage = ImageOps.grayscale(haystackImage)
+    else:
+        if needleImage.mode == 'RGBA':
+            needleImage = needleImage.convert('RGB')
+        if haystackImage.mode == 'RGBA':
+            haystackImage = haystackImage.convert('RGB')
 
     needleWidth, needleHeight = needleImage.size
     haystackWidth, haystackHeight = haystackImage.size
