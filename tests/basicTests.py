@@ -70,6 +70,7 @@ class TestMagicNumbers(unittest.TestCase):
     def test_pngMagicNumbers(self):
         # Testing my test helper function to make sure it correctly
         # identifies PNG files.
+        self.assertTrue(isPng('largenoise.png'))
         self.assertTrue(isPng('colornoise.png'))
         self.assertTrue(isPng('haystack1.png'))
         self.assertTrue(isPng('haystack2.png'))
@@ -82,6 +83,7 @@ class TestMagicNumbers(unittest.TestCase):
     def test_jpgMagicNumbers(self):
         # Testing my test helper function to make sure it correctly
         # identifies JPG files.
+        self.assertFalse(isJpg('largenoise.png'))
         self.assertFalse(isJpg('colornoise.png'))
         self.assertFalse(isJpg('haystack1.png'))
         self.assertFalse(isJpg('haystack2.png'))
@@ -191,6 +193,23 @@ class TestGeneral(unittest.TestCase):
         haystack2Fp.close()
         colorNoiseFp.close()
 
+    def test_imageNotFound(self):
+        colorNoiseFp = open('colornoise.png' ,'rb')
+        colorNoiseIm = Image.open(colorNoiseFp)
+        slashFp = open('slash.png' ,'rb')
+        slashIm = Image.open(slashFp)
+
+        oldSetting = pyscreeze.RAISE_IF_NOT_FOUND
+
+        pyscreeze.RAISE_IF_NOT_FOUND = True
+        self.assertRaises(pyscreeze.ImageNotFoundException, pyscreeze.locate, slashIm, colorNoiseIm)
+        pyscreeze.RAISE_IF_NOT_FOUND = False
+        self.assertEqual(None, pyscreeze.locate(slashIm, colorNoiseIm))
+
+        pyscreeze.RAISE_IF_NOT_FOUND = oldSetting
+        colorNoiseFp.close()
+        slashFp.close()
+
     def test_center(self):
         self.assertEqual((10, 10), pyscreeze.center((0, 0, 20, 20)))
         self.assertEqual((10, 10), pyscreeze.center((5, 5, 10, 10)))
@@ -198,6 +217,30 @@ class TestGeneral(unittest.TestCase):
         self.assertEqual((100, 100), pyscreeze.center((0, 0, 200, 200)))
         self.assertEqual((100, 100), pyscreeze.center((50, 50, 100, 100)))
 
+    def test_locate_im_step(self):
+        slashFp = open('slash.png' ,'rb')
+        haystack1Fp = open('haystack1.png' ,'rb')
+        haystack2Fp = open('haystack2.png' ,'rb')
+        colorNoiseFp = open('colornoise.png' ,'rb')
+        slashIm = Image.open(slashFp)
+        haystack1Im = Image.open(haystack1Fp)
+        haystack2Im = Image.open(haystack2Fp)
+        colorNoiseIm = Image.open(colorNoiseFp)
+
+        for step in range(1, 10):
+            self.assertEqual((94, 94, 4, 4), tuple(pyscreeze.locate(slashIm, haystack1Im, step=step)))
+            self.assertEqual((93, 93, 4, 4), tuple(pyscreeze.locate(slashIm, haystack2Im, step=step)))
+
+            self.assertEqual((94, 94, 4, 4), tuple(pyscreeze.locate(slashIm, haystack1Im, grayscale=True, step=step)))
+            self.assertEqual((93, 93, 4, 4), tuple(pyscreeze.locate(slashIm, haystack2Im, grayscale=True, step=step)))
+
+            self.assertEqual(None, pyscreeze.locate(slashIm, colorNoiseIm, step=step))
+            self.assertEqual(None, pyscreeze.locate(slashIm, colorNoiseIm, grayscale=True, step=step))
+
+        slashFp.close()
+        haystack1Fp.close()
+        haystack2Fp.close()
+        colorNoiseFp.close()
 
 
 if __name__ == '__main__':

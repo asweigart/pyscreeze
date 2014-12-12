@@ -22,6 +22,9 @@ from PIL import ImageOps
 
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
 
+RAISE_IF_NOT_FOUND = False
+GRAYSCALE_DEFAULT = False
+
 scrotExists = False
 try:
     if sys.platform not in ('java', 'darwin', 'win32'):
@@ -37,7 +40,9 @@ except OSError as ex:
     else:
         raise
 
-def locateAll(needleImage, haystackImage, grayscale=False, limit=None, region=None):
+def locateAll(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
+    if grayscale is None:
+        grayscale = GRAYSCALE_DEFAULT
     needleFileObj = None
     haystackFileObj = None
     if isinstance(needleImage, str):
@@ -76,7 +81,7 @@ def locateAll(needleImage, haystackImage, grayscale=False, limit=None, region=No
     for y in range(haystackHeight):
         for matchx in _kmp(needleImageFirstRow, haystackImageData[y * haystackWidth:(y+1) * haystackWidth]):
             foundMatch = True
-            for searchy in range(1, needleHeight):
+            for searchy in range(1, needleHeight, step):
                 haystackStart = (searchy + y) * haystackWidth + matchx
                 if needleImageData[searchy * needleWidth:(searchy+1) * needleWidth] != haystackImageData[haystackStart:haystackStart + needleWidth]:
                     foundMatch = False
@@ -99,19 +104,26 @@ def locateAll(needleImage, haystackImage, grayscale=False, limit=None, region=No
     if haystackFileObj is not None:
         haystackFileObj.close()
 
+    if RAISE_IF_NOT_FOUND and numMatchesFound == 0:
+        raise ImageNotFoundException('Could not locate the image.')
 
-def locate(needleImage, haystackImage, grayscale=False, region=None):
+
+def locate(needleImage, haystackImage, grayscale=None, region=None, step=1):
     # Note: The gymnastics in this function is because we want to make sure to exhaust the iterator so that the needle and haystack files are closed in locateAll.
-    points = tuple(locateAll(needleImage, haystackImage, grayscale, 1))
+    if grayscale is None:
+        grayscale = GRAYSCALE_DEFAULT
+    points = tuple(locateAll(needleImage, haystackImage, grayscale, limit=1, step=step))
     if len(points) > 0:
         return points[0]
     else:
         return None
 
 
-def locateOnScreen(image, grayscale=False, region=None):
+def locateOnScreen(image, grayscale=None, region=None, step=1):
+    if grayscale is None:
+        grayscale = GRAYSCALE_DEFAULT
     screenshotIm = screenshot()
-    retVal = locate(image, screenshotIm, grayscale)
+    retVal = locate(image, screenshotIm, grayscale, step=step)
     try:
         screenshotIm.fp.close()
     except AttributeError:
@@ -122,9 +134,11 @@ def locateOnScreen(image, grayscale=False, region=None):
     return retVal
 
 
-def locateAllOnScreen(image, grayscale=False, limit=None, region=None):
+def locateAllOnScreen(image, grayscale=None, limit=None, region=None, step=1):
+    if grayscale is None:
+        grayscale = GRAYSCALE_DEFAULT
     screenshotIm = screenshot()
-    retVal = locateAll(image, screenshotIm, grayscale, limit)
+    retVal = locateAll(image, screenshotIm, grayscale, limit, step=step)
     try:
         screenshotIm.fp.close()
     except AttributeError:
@@ -135,12 +149,23 @@ def locateAllOnScreen(image, grayscale=False, limit=None, region=None):
     return retVal
 
 
-def locateCenterOnScreen(image, grayscale=False, region=None):
-    coords = locateOnScreen(image, grayscale)
+def locateCenterOnScreen(image, grayscale=None, region=None, step=1):
+    if grayscale is None:
+        grayscale = GRAYSCALE_DEFAULT
+    coords = locateOnScreen(image, grayscale, step=step)
     if coords is None:
         return None
     else:
         return center(coords)
+
+
+def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen.png'):
+    from PIL import ImageDraw # this is the only function that needs this, and it's rarely called
+    screenshotIm = screenshot()
+    draw = ImageDraw.Draw(screenshotIm)
+    region = (region[0], region[1], region[2] - region[0], region[3] - region[1]) # convert from (left, top, right, bottom) to (left, top, width, height)
+    draw.rectangle(region, outline=outlineColor)
+    screenshotIm.save(filename)
 
 
 def _screenshot_win32(imageFilename=None, region=None):
@@ -252,3 +277,6 @@ else:
 
 grab = screenshot # for compatibility with Pillow/PIL's ImageGrab module.
 
+
+class ImageNotFoundException(Exception):
+    pass
