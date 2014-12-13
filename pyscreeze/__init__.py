@@ -78,8 +78,19 @@ def locateAll(needleImage, haystackImage, grayscale=None, limit=None, region=Non
 
     numMatchesFound = 0
 
+    # NOTE: After running benchmark.py on the following code, it seem that having a step
+    # value greater than 1 does not give *any* significant performance improvements.
+    # Since using a step higher than 1 makes for less accurate matches, it will be
+    # set to 1.
+    #if step == 1:
+    #    firstFindFunc = _kmp
+    #else:
+    #    firstFindFunc = _steppingFind
+    firstFindFunc = _kmp
+    step = 1 # hard-code step as 1 until a way to improve it can be figured out.
+
     for y in range(haystackHeight):
-        for matchx in _kmp(needleImageFirstRow, haystackImageData[y * haystackWidth:(y+1) * haystackWidth]):
+        for matchx in firstFindFunc(needleImageFirstRow, haystackImageData[y * haystackWidth:(y+1) * haystackWidth], step):
             foundMatch = True
             for searchy in range(1, needleHeight, step):
                 haystackStart = (searchy + y) * haystackWidth + matchx
@@ -227,7 +238,7 @@ def _screenshot_linux(imageFilename=None, region=None):
 
 
 
-def _kmp(needle, haystack): # Knuth-Morris-Pratt search algorithm implementation (to be used by screen capture)
+def _kmp(needle, haystack, _dummy): # Knuth-Morris-Pratt search algorithm implementation (to be used by screen capture)
     # build table of shift amounts
     shifts = [1] * (len(needle) + 1)
     shift = 1
@@ -246,6 +257,17 @@ def _kmp(needle, haystack): # Knuth-Morris-Pratt search algorithm implementation
             matchLen -= shifts[matchLen]
         matchLen += 1
         if matchLen == len(needle):
+            yield startPos
+
+
+def _steppingFind(needle, haystack, step):
+    for startPos in range(0, len(haystack) - len(needle) + 1):
+        foundMatch = True
+        for pos in range(0, len(needle), step):
+            if haystack[startPos + pos] != needle[pos]:
+                foundMatch = False
+                break
+        if foundMatch:
             yield startPos
 
 
