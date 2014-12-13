@@ -54,6 +54,8 @@ def locateAll(needleImage, haystackImage, grayscale=None, limit=None, region=Non
         haystackFileObj = open(haystackImage, 'rb')
         haystackImage = Image.open(haystackFileObj)
 
+    if region is not None:
+        haystackImage = haystackImage.crop((region[0], region[1], region[0] + region[2], region[1] + region[3]))
 
     if grayscale:
         needleImage = ImageOps.grayscale(needleImage)
@@ -123,7 +125,7 @@ def locate(needleImage, haystackImage, grayscale=None, region=None, step=1):
     # Note: The gymnastics in this function is because we want to make sure to exhaust the iterator so that the needle and haystack files are closed in locateAll.
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    points = tuple(locateAll(needleImage, haystackImage, grayscale, limit=1, step=step))
+    points = tuple(locateAll(needleImage, haystackImage, grayscale, limit=1, region=region, step=step))
     if len(points) > 0:
         return points[0]
     else:
@@ -133,8 +135,8 @@ def locate(needleImage, haystackImage, grayscale=None, region=None, step=1):
 def locateOnScreen(image, grayscale=None, region=None, step=1):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    screenshotIm = screenshot()
-    retVal = locate(image, screenshotIm, grayscale, step=step)
+    screenshotIm = screenshot(region=region)
+    retVal = locate(image, screenshotIm, grayscale, region=None, step=step) # already cropped screenshot, so pass None for region
     try:
         screenshotIm.fp.close()
     except AttributeError:
@@ -148,8 +150,8 @@ def locateOnScreen(image, grayscale=None, region=None, step=1):
 def locateAllOnScreen(image, grayscale=None, limit=None, region=None, step=1):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    screenshotIm = screenshot()
-    retVal = locateAll(image, screenshotIm, grayscale, limit, step=step)
+    screenshotIm = screenshot(region=region)
+    retVal = locateAll(image, screenshotIm, grayscale, limit, region=None, step=step) # already cropped screenshot, so pass None for region
     try:
         screenshotIm.fp.close()
     except AttributeError:
