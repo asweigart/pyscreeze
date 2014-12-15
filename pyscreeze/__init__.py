@@ -56,6 +56,8 @@ def locateAll(needleImage, haystackImage, grayscale=None, limit=None, region=Non
 
     if region is not None:
         haystackImage = haystackImage.crop((region[0], region[1], region[0] + region[2], region[1] + region[3]))
+    else:
+        region = (0, 0) # set to 0 because the code always accounts for a region
 
     if grayscale:
         needleImage = ImageOps.grayscale(needleImage)
@@ -102,7 +104,7 @@ def locateAll(needleImage, haystackImage, grayscale=None, limit=None, region=Non
             if foundMatch:
                 # Match found, report the x, y, width, height of where the matching region is in haystack.
                 numMatchesFound += 1
-                yield (matchx, y, needleWidth, needleHeight)
+                yield (matchx + region[0], y + region[1], needleWidth, needleHeight)
                 if limit is not None and numMatchesFound >= limit:
                     # Limit has been reached. Close file handles.
                     if needleFileObj is not None:
@@ -135,8 +137,8 @@ def locate(needleImage, haystackImage, grayscale=None, region=None, step=1):
 def locateOnScreen(image, grayscale=None, region=None, step=1):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    screenshotIm = screenshot(region=region)
-    retVal = locate(image, screenshotIm, grayscale, region=None, step=step) # already cropped screenshot, so pass None for region
+    screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
+    retVal = locate(image, screenshotIm, grayscale, region=region, step=step)
     try:
         screenshotIm.fp.close()
     except AttributeError:
@@ -150,8 +152,8 @@ def locateOnScreen(image, grayscale=None, region=None, step=1):
 def locateAllOnScreen(image, grayscale=None, limit=None, region=None, step=1):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    screenshotIm = screenshot(region=region)
-    retVal = locateAll(image, screenshotIm, grayscale, limit, region=None, step=step) # already cropped screenshot, so pass None for region
+    screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
+    retVal = locateAll(image, screenshotIm, grayscale, limit, region=region, step=step)
     try:
         screenshotIm.fp.close()
     except AttributeError:
