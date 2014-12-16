@@ -20,6 +20,43 @@ def locateTest():
 
     largeNoiseFp.close()
 
+def largegrayscaleTest():
+    largeNoiseFp = open('largenoise.png' ,'rb')
+    largeNoiseIm = Image.open(largeNoiseFp)
+
+    imageWidth, imageHeight = largeNoiseIm.size
+    bottomRightCorner100x100 = largeNoiseIm.crop((imageWidth - 100, imageHeight - 100, imageWidth, imageHeight))
+
+    startTime = time.time()
+    result = pyscreeze.locate(bottomRightCorner100x100, largeNoiseIm, grayscale=False)
+    print('Non-grayscale located at %s in: %s seconds' % (result, round(time.time() - startTime, 2)))
+
+    startTime = time.time()
+    result = pyscreeze.locate(bottomRightCorner100x100, largeNoiseIm, grayscale=True)
+    print('Grayscale located at %s in: %s seconds' % (result, round(time.time() - startTime, 2)))
+
+    largeNoiseFp.close()
+
+
+def smallgrayscaleTest():
+    largeNoiseFp = open('largenoise.png' ,'rb')
+    largeNoiseIm = Image.open(largeNoiseFp)
+
+    imageWidth, imageHeight = largeNoiseIm.size
+    bottomRightCorner30x30 = largeNoiseIm.crop((imageWidth - 30, imageHeight - 30, imageWidth, imageHeight))
+    largeNoiseIm = largeNoiseIm.crop((imageWidth - 100, imageHeight - 100, imageWidth, imageHeight))
+
+    startTime = time.time()
+    result = pyscreeze.locate(bottomRightCorner30x30, largeNoiseIm, grayscale=False)
+    print('Non-grayscale located at %s in: %s seconds' % (result, round(time.time() - startTime, 2)))
+
+    startTime = time.time()
+    result = pyscreeze.locate(bottomRightCorner30x30, largeNoiseIm, grayscale=True)
+    print('Grayscale located at %s in: %s seconds' % (result, round(time.time() - startTime, 2)))
+
+    largeNoiseFp.close()
+
+
 def smallNeedleVsLargeNeedle():
     # This test shows that larger needle images take longer to find. However, for small-ish needles (100x100 and smaller) it doesn't really matter.
     largeNoiseFp = open('largenoise.png' ,'rb')
@@ -53,5 +90,5 @@ def smallNeedleVsLargeNeedle():
 
 
 
-
-smallNeedleVsLargeNeedle()
+#largegrayscaleTest()
+smallgrayscaleTest()
