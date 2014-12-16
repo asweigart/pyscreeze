@@ -10,7 +10,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 import datetime
 import os
@@ -167,7 +167,7 @@ def locateAllOnScreen(image, grayscale=None, limit=None, region=None, step=1):
 def locateCenterOnScreen(image, grayscale=None, region=None, step=1):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    coords = locateOnScreen(image, grayscale, step=step)
+    coords = locateOnScreen(image, grayscale=grayscale, region=region, step=step)
     if coords is None:
         return None
     else:
@@ -178,7 +178,7 @@ def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen
     from PIL import ImageDraw # this is the only function that needs this, and it's rarely called
     screenshotIm = screenshot()
     draw = ImageDraw.Draw(screenshotIm)
-    region = (region[0], region[1], region[2] - region[0], region[3] - region[1]) # convert from (left, top, right, bottom) to (left, top, width, height)
+    region = (region[0], region[1], region[2] + region[0], region[3] + region[1]) # convert from (left, top, right, bottom) to (left, top, width, height)
     draw.rectangle(region, outline=outlineColor)
     screenshotIm.save(filename)
 
