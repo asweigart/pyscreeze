@@ -53,7 +53,28 @@ class ImageNotFoundException(Exception):
     pass
 
 
-def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
+def _load_cv2(img, grayscale):
+    # load images if given filenames, or else convert as needed
+    if grayscale:
+        load_image_fmt = cv2.CV_LOAD_IMAGE_GRAYSCALE
+    else:
+        load_image_fmt = cv2.CV_LOAD_IMAGE_COLOR
+
+    if isinstance(img, str):
+        img = cv2.imread(img, load_image_fmt)
+    elif isinstance(img, numpy.ndarray):
+        if grayscale:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    else:
+        # from stackoverflow: "OpenCV uses BGR channel order by default,
+        # so be careful, e.g. when you compare an image you loaded with
+        # cv2.imread to an image you converted from PIL to numpy. You can
+        # always use cv2.cvtColor to convert between formats."
+        raise NotImplementedError  # TO-DO: convert PIL to cv format
+    return img
+
+
+def _locateAll_opencv(needleImage, haystackImage, grayscale=GRAYSCALE_DEFAULT, limit=None, region=None, step=1):
     """ faster than pure python
         step=2 skips every other row and column, ~3x faster but less accurate
         limitations:
@@ -64,33 +85,9 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=None, re
           - RGBA images are not handled / untested
           - step=2 not fully tested
     """
-    if grayscale is None:
-        grayscale = GRAYSCALE_DEFAULT
-    if grayscale:
-        load_image_fmt = cv2.CV_LOAD_IMAGE_GRAYSCALE
-    else:
-        load_image_fmt = cv2.CV_LOAD_IMAGE_COLOR
-
-    # load images if given filenames, else convert as needed:
-    if isinstance(needleImage, str):
-        needleImage = cv2.imread(needleImage, load_image_fmt)
-        needleHeight, needleWidth = needleImage.shape[:2]
-    elif isinstance(needleImage, numpy.ndarray):
-        if grayscale:
-            needleImage = cv2.cvtColor(needleImage, cv2.COLOR_BGR2GRAY)
-    else:
-        # from stackoverflow: "OpenCV uses BGR channel order by default,
-        # so be careful, e.g. when you compare an image you loaded with
-        # cv2.imread to an image you converted from PIL to numpy. You can
-        # always use cv2.cvtColor to convert between formats."
-        raise NotImplementedError  # TO-DO: convert PIL to cv format
-    if isinstance(haystackImage, str):
-        haystackImage = cv2.imread(haystackImage, load_image_fmt)
-    elif isinstance(haystackImage, numpy.ndarray):
-        if grayscale:
-            haystackImage = cv2.cvtColor(haystackImage, cv2.COLOR_BGR2GRAY)
-    else:
-        raise NotImplementedError  # TO-DO: convert PIL to cv format
+    needleImage = _load_cv2(needleImage, grayscale)
+    needleHeight, needleWidth = needleImage.shape[:2]
+    haystackImage = _load_cv2(haystackImage, grayscale)
 
     if region:
         haystackImage = haystackImage[region[1]:region[1]+region[3],
