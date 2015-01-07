@@ -199,7 +199,7 @@ def _screenshot_osx(imageFilename=None, region=None):
         tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
         tmpFilename = imageFilename
-    subprocess.call(['screencapture', tmpFilename])
+    subprocess.call(['screencapture', '-x', tmpFilename])
     im = Image.open(tmpFilename)
 
     if region is not None:
