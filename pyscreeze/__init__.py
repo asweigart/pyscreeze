@@ -20,6 +20,14 @@ import errno
 from PIL import Image
 from PIL import ImageOps
 
+try:
+    import cv2, numpy
+    useOpenCV = True
+    confidence = 0.999
+except ImportError:
+    useOpenCV = False
+
+
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
 
 RAISE_IF_NOT_FOUND = False
@@ -40,7 +48,80 @@ except OSError as ex:
     else:
         raise
 
-def locateAll(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
+
+class ImageNotFoundException(Exception):
+    pass
+
+
+def _load_cv2(img, grayscale):
+    # load images if given filenames, or else convert as needed
+    if grayscale:
+        load_image_fmt = cv2.CV_LOAD_IMAGE_GRAYSCALE
+    else:
+        load_image_fmt = cv2.CV_LOAD_IMAGE_COLOR
+
+    if isinstance(img, str):
+        img = cv2.imread(img, load_image_fmt)
+    elif isinstance(img, numpy.ndarray):
+        if grayscale:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    else:
+        # from stackoverflow: "OpenCV uses BGR channel order by default,
+        # so be careful, e.g. when you compare an image you loaded with
+        # cv2.imread to an image you converted from PIL to numpy. You can
+        # always use cv2.cvtColor to convert between formats."
+        raise NotImplementedError  # TO-DO: convert PIL to cv format
+    return img
+
+
+def _locateAll_opencv(needleImage, haystackImage, grayscale=GRAYSCALE_DEFAULT, limit=None, region=None, step=1):
+    """ faster than pure python
+        step=2 skips every other row and column, ~3x faster but less accurate
+        limitations:
+          - OpenCV 3.x & python 3.x not tested
+          - minimal checking of region
+          - PIL to cv conversion not implemented
+          - cv to grayscale implemented but not tested
+          - RGBA images are not handled / untested
+          - step=2 not fully tested
+    """
+    needleImage = _load_cv2(needleImage, grayscale)
+    needleHeight, needleWidth = needleImage.shape[:2]
+    haystackImage = _load_cv2(haystackImage, grayscale)
+
+    if region:
+        haystackImage = haystackImage[region[1]:region[1]+region[3],
+                                      region[0]:region[0]+region[2]]
+    else:
+        region = (0, 0)  # full image; these values used in the yield statement
+
+    if (haystackImage.shape[0] < needleImage.shape[0] or
+        haystackImage.shape[1] < needleImage.shape[1]):
+        # avoid semi-cryptic OpenCV error below if bad size
+        raise ValueError('needle larger than haystack image (or region)')
+
+    # skip every other row and column:
+    if step == 2:
+        needleImage = needleImage[::step, ::step]
+        haystackImage = haystackImage[::step, ::step]
+
+    # do the work (from https://stackoverflow.com/questions/7670112/finding-a-subimage-inside-a-numpy-image/9253805#9253805)
+    result = cv2.matchTemplate(haystackImage, needleImage, cv2.TM_CCOEFF_NORMED)
+    match_indices = numpy.arange(result.size)[(result > confidence).flatten()]
+    unraveled = numpy.unravel_index(match_indices, result.shape)
+
+    numMatchesFound = 0
+    for y, matchx in zip(unraveled[0], unraveled[1]):
+        numMatchesFound += 1
+        yield (step * matchx + region[0], step * y + region[1], needleWidth, needleHeight)
+        if limit and numMatchesFound >= limit:
+            break
+
+    if RAISE_IF_NOT_FOUND and numMatchesFound == 0:
+        raise ImageNotFoundException('Could not locate the image.')
+
+
+def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
     needleFileObj = None
@@ -303,6 +384,10 @@ else:
 
 grab = screenshot # for compatibility with Pillow/PIL's ImageGrab module.
 
-
-class ImageNotFoundException(Exception):
-    pass
+# set the locateAll function to use opencv if possible; python 3 needs opencv 3.0+
+if useOpenCV:
+    locateAll = _locateAll_opencv
+    if not RUNNING_PYTHON_2 and cv2.__version__ < '3':
+        locateAll = _locateAll_python
+else:
+    locateAll = _locateAll_python
