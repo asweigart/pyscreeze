@@ -111,6 +111,7 @@ def locateAll(needleImage, haystackImage, grayscale=None, limit=None, region=Non
                         needleFileObj.close()
                     if haystackFileObj is not None:
                         haystackFileObj.close()
+                    raise StopIteration()
 
 
     # There was no limit or the limit wasn't reached, but close the file handles anyway.
