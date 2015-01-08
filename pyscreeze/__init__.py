@@ -63,22 +63,22 @@ def _load_cv2(img, grayscale=None):
         grayscale = GRAYSCALE_DEFAULT
     if isinstance(img, str):
         if grayscale:
-            img = cv2.imread(img, cv2.CV_LOAD_IMAGE_GRAYSCALE)
+            img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_GRAYSCALE)
         else:
-            img = cv2.imread(img, cv2.CV_LOAD_IMAGE_COLOR)  # -1 gets RGBA
+            img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_COLOR)  # -1 gets RGBA
     elif isinstance(img, numpy.ndarray):
         # don't try to convert an already-gray image
         if grayscale and len(img.shape) == 3:  # and img.shape[2] == 3:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            img_cv = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     elif hasattr(img, 'convert'):
         # assume its a PIL.Image, convert to cv format
-        img_ocv = numpy.array(img.convert('RGB'))
-        img = img_ocv[:, :, ::-1]  # -1 does RGB -> BGR
+        img_array = numpy.array(img.convert('RGB'))
+        img_cv = img_array[:, :, ::-1].copy()  # -1 does RGB -> BGR
         if grayscale:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            img_cv = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
     else:
-        raise TypeError('expected image filename, OpenCV numpy array, or PIL image')
-    return img
+        raise TypeError('expected an image filename, OpenCV numpy array, or PIL image')
+    return img_cv
 
 
 def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, region=None, step=1):
