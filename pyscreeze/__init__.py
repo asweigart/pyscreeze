@@ -71,18 +71,21 @@ def _load_cv2(img, grayscale=GRAYSCALE_DEFAULT):
         if grayscale:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     else:
-        raise TypeError('unknown image format')
+        raise TypeError('expected image filename, OpenCV numpy array, or PIL image')
     return img
 
 
-def _locateAll_opencv(needleImage, haystackImage, grayscale=GRAYSCALE_DEFAULT, limit=None, region=None, step=1):
-    """ faster than pure python
+def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, region=None, step=1):
+    """ faster but more memory-intensive than pure python
         step=2 skips every other row and column, ~3x faster but less accurate
         limitations:
           - OpenCV 3.x & python 3.x not tested
           - RGBA images are not handled / untested
           - step=2 not fully tested
     """
+    if grayscale is None:
+        grayscale = GRAYSCALE_DEFAULT
+
     needleImage = _load_cv2(needleImage, grayscale)
     needleHeight, needleWidth = needleImage.shape[:2]
     haystackImage = _load_cv2(haystackImage, grayscale)
@@ -92,31 +95,25 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=GRAYSCALE_DEFAULT, l
                                       region[0]:region[0]+region[2]]
     else:
         region = (0, 0)  # full image; these values used in the yield statement
-
     if (haystackImage.shape[0] < needleImage.shape[0] or
         haystackImage.shape[1] < needleImage.shape[1]):
         # avoid semi-cryptic OpenCV error below if bad size
         raise ValueError('needle dimensions exceed the haystack image (or region)')
-
-    # skip every other row and column:
     if step == 2:
         needleImage = needleImage[::step, ::step]
         haystackImage = haystackImage[::step, ::step]
 
-    # do the work (from https://stackoverflow.com/questions/7670112/finding-a-subimage-inside-a-numpy-image/9253805#9253805)
+    # get all matches at once, credit: https://stackoverflow.com/questions/7670112/finding-a-subimage-inside-a-numpy-image/9253805#9253805
     result = cv2.matchTemplate(haystackImage, needleImage, cv2.TM_CCOEFF_NORMED)
     match_indices = numpy.arange(result.size)[(result > confidence).flatten()]
-    unraveled = numpy.unravel_index(match_indices, result.shape)
+    unraveled = numpy.unravel_index(match_indices[:limit], result.shape)
 
-    numMatchesFound = 0
-    for y, matchx in zip(unraveled[0], unraveled[1]):
-        numMatchesFound += 1
-        yield (step * matchx + region[0], step * y + region[1], needleWidth, needleHeight)
-        if limit and numMatchesFound >= limit:
-            break
-
-    if RAISE_IF_NOT_FOUND and numMatchesFound == 0:
+    if len(unraveled[0]) == 0 and RAISE_IF_NOT_FOUND:
         raise ImageNotFoundException('Could not locate the image.')
+
+    # use a generator for API consistency (everything is computed already):
+    for y, matchx in zip(unraveled[0], unraveled[1]):
+        yield (step * matchx + region[0], step * y + region[1], needleWidth, needleHeight)
 
 
 def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
