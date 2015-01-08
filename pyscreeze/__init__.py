@@ -23,7 +23,7 @@ from PIL import ImageOps
 try:
     import cv2, numpy
     useOpenCV = True
-    confidence = 0.999  # for thresholding matches in _locateAll_opencv
+    CONFIDENCE = 0.999  # for thresholding matches in _locateAll_opencv
 except ImportError:
     useOpenCV = False
 
@@ -53,16 +53,22 @@ class ImageNotFoundException(Exception):
     pass
 
 
-def _load_cv2(img, grayscale=GRAYSCALE_DEFAULT):
+def _load_cv2(img, grayscale=None):
     # load images if given filename, or convert as needed to opencv
-    # TO-DO: handle RGBA images
+    # Alpha layer just causes failures at this point, so flatten to RGB.
+    # RGBA: load with -1 * cv2.CV_LOAD_IMAGE_COLOR to preserve alpha
+    # to matchTemplate, need template and image to be the same wrt having alpha
+
+    if grayscale is None:
+        grayscale = GRAYSCALE_DEFAULT
     if isinstance(img, str):
         if grayscale:
             img = cv2.imread(img, cv2.CV_LOAD_IMAGE_GRAYSCALE)
         else:
-            img = cv2.imread(img, cv2.CV_LOAD_IMAGE_COLOR)
+            img = cv2.imread(img, cv2.CV_LOAD_IMAGE_COLOR)  # -1 gets RGBA
     elif isinstance(img, numpy.ndarray):
-        if grayscale:
+        # don't try to convert an already-gray image
+        if grayscale and len(img.shape) == 3:  # and img.shape[2] == 3:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     elif hasattr(img, 'convert'):
         # assume its a PIL.Image, convert to cv format
@@ -105,14 +111,14 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
 
     # get all matches at once, credit: https://stackoverflow.com/questions/7670112/finding-a-subimage-inside-a-numpy-image/9253805#9253805
     result = cv2.matchTemplate(haystackImage, needleImage, cv2.TM_CCOEFF_NORMED)
-    match_indices = numpy.arange(result.size)[(result > confidence).flatten()]
-    unraveled = numpy.unravel_index(match_indices[:limit], result.shape)
+    match_indices = numpy.arange(result.size)[(result > CONFIDENCE).flatten()]
+    matches = numpy.unravel_index(match_indices[:limit], result.shape)
 
-    if len(unraveled[0]) == 0 and RAISE_IF_NOT_FOUND:
+    if len(matches[0]) == 0 and RAISE_IF_NOT_FOUND:
         raise ImageNotFoundException('Could not locate the image.')
 
     # use a generator for API consistency (everything is computed already):
-    for y, matchx in zip(unraveled[0], unraveled[1]):
+    for y, matchx in zip(matches[0], matches[1]):
         yield (step * matchx + region[0], step * y + region[1], needleWidth, needleHeight)
 
 
