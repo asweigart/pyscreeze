@@ -23,7 +23,6 @@ from PIL import ImageOps
 try:
     import cv2, numpy
     useOpenCV = True
-    CONFIDENCE = 0.999  # for thresholding matches in _locateAll_opencv
 except ImportError:
     useOpenCV = False
 
@@ -65,9 +64,9 @@ def _load_cv2(img, grayscale=None):
         if grayscale:
             img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_GRAYSCALE)
         else:
-            img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_COLOR)  # -1 gets RGBA
+            img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_COLOR)
     elif isinstance(img, numpy.ndarray):
-        # don't try to convert an already-gray image
+        # don't try to convert an already-gray image to gray
         if grayscale and len(img.shape) == 3:  # and img.shape[2] == 3:
             img_cv = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     elif hasattr(img, 'convert'):
@@ -81,13 +80,15 @@ def _load_cv2(img, grayscale=None):
     return img_cv
 
 
-def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, region=None, step=1):
+def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, region=None, step=1,
+                      confidence=0.999):
     """ faster but more memory-intensive than pure python
-        step=2 skips every other row and column, ~3x faster but less accurate
+        step 2 skips every other row and column = ~3x faster but prone to miss;
+            to compensate, the algorithm automatically reduces the confidence
+            threshold by 5% (which helps but will not avoid all misses).
         limitations:
           - OpenCV 3.x & python 3.x not tested
-          - RGBA images are not handled / untested
-          - step=2 not fully tested
+          - RGBA images are treated as RBG (ignores alpha channel)
     """
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
@@ -104,22 +105,28 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
     if (haystackImage.shape[0] < needleImage.shape[0] or
         haystackImage.shape[1] < needleImage.shape[1]):
         # avoid semi-cryptic OpenCV error below if bad size
-        raise ValueError('needle dimensions exceed the haystack image (or region)')
+        raise ValueError('needle dimension(s) exceed the haystack image or region dimensions')
+
     if step == 2:
+        confidence *= 0.95
         needleImage = needleImage[::step, ::step]
         haystackImage = haystackImage[::step, ::step]
+    else:
+        step = 1
 
     # get all matches at once, credit: https://stackoverflow.com/questions/7670112/finding-a-subimage-inside-a-numpy-image/9253805#9253805
     result = cv2.matchTemplate(haystackImage, needleImage, cv2.TM_CCOEFF_NORMED)
-    match_indices = numpy.arange(result.size)[(result > CONFIDENCE).flatten()]
+    match_indices = numpy.arange(result.size)[(result > confidence).flatten()]
     matches = numpy.unravel_index(match_indices[:limit], result.shape)
 
     if len(matches[0]) == 0 and RAISE_IF_NOT_FOUND:
-        raise ImageNotFoundException('Could not locate the image.')
+        raise ImageNotFoundException('Could not locate the image (highest confidence = %.3f)' % result.max())
 
-    # use a generator for API consistency (everything is computed already):
-    for y, matchx in zip(matches[0], matches[1]):
-        yield (step * matchx + region[0], step * y + region[1], needleWidth, needleHeight)
+    # use a generator for API consistency:
+    matchx = matches[1] * step + region[0]  # vectorized
+    matchy = matches[0] * step + region[1]
+    for x, y in zip(matchx, matchy):
+        yield (x, y, needleWidth, needleHeight)
 
 
 def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
