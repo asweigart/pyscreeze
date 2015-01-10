@@ -1,4 +1,5 @@
-v0.1.4, 2014/12/15 -- Actual fix for the region issue.
+v0.1.6, 2015/01/10 -- OpenCV integration, fix for limit keyword argument
+v0.1.5, 2014/12/15 -- Actual fix for the region issue.
 v0.1.4, 2014/12/14 -- Updated features for region parameter to several functions.
 v0.1.3, 2014/12/11 -- Fix for Linux issues from github.com/LauritzThaulow
 v0.1.2, 2014/10/19 -- Fix for locateCenterOnScreen() bug.

@@ -5,4 +5,5 @@ answer newbie questions, and generally made PyScreeze that much better:
 Al Sweigart
 Ari Lacenski https://github.com/tensory
 Christopher Valles https://github.com/christophervalles
+Jeremy R. Gray https://github.com/jeremygray
 Lauritz Thaulow https://github.com/LauritzThaulow
