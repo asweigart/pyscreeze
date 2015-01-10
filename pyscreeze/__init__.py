@@ -193,6 +193,7 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
                         needleFileObj.close()
                     if haystackFileObj is not None:
                         haystackFileObj.close()
+                    raise StopIteration()
 
 
     # There was no limit or the limit wasn't reached, but close the file handles anyway.
