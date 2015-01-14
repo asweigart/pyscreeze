@@ -228,14 +228,14 @@ class TestGeneral(unittest.TestCase):
         colorNoiseIm = Image.open(colorNoiseFp)
 
         for step in range(1, 10):
-            self.assertEqual((94, 94, 4, 4), tuple(pyscreeze.locate(slashIm, haystack1Im, step=step)))
-            self.assertEqual((93, 93, 4, 4), tuple(pyscreeze.locate(slashIm, haystack2Im, step=step)))
+            self.assertEqual(((94, 94, 4, 4), step), (tuple(pyscreeze.locate(slashIm, haystack1Im, step=step)), step))
+            self.assertEqual(((93, 93, 4, 4), step), (tuple(pyscreeze.locate(slashIm, haystack2Im, step=step)), step))
 
-            self.assertEqual((94, 94, 4, 4), tuple(pyscreeze.locate(slashIm, haystack1Im, grayscale=True, step=step)))
-            self.assertEqual((93, 93, 4, 4), tuple(pyscreeze.locate(slashIm, haystack2Im, grayscale=True, step=step)))
+            self.assertEqual(((94, 94, 4, 4), step), (tuple(pyscreeze.locate(slashIm, haystack1Im, grayscale=True, step=step)), step))
+            self.assertEqual(((93, 93, 4, 4), step), (tuple(pyscreeze.locate(slashIm, haystack2Im, grayscale=True, step=step)), step))
 
-            self.assertEqual(None, pyscreeze.locate(slashIm, colorNoiseIm, step=step))
-            self.assertEqual(None, pyscreeze.locate(slashIm, colorNoiseIm, grayscale=True, step=step))
+            self.assertEqual((None, step), (pyscreeze.locate(slashIm, colorNoiseIm, step=step), step))
+            self.assertEqual((None, step), (pyscreeze.locate(slashIm, colorNoiseIm, grayscale=True, step=step), step))
 
         slashFp.close()
         haystack1Fp.close()
