@@ -213,22 +213,23 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
         raise ImageNotFoundException('Could not locate the image.')
 
 
-def locate(needleImage, haystackImage, grayscale=None, region=None, step=1):
+def locate(needleImage, haystackImage, **kwargs):
     # Note: The gymnastics in this function is because we want to make sure to exhaust the iterator so that the needle and haystack files are closed in locateAll.
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    points = tuple(locateAll(needleImage, haystackImage, grayscale, limit=1, region=region, step=step))
+    kwargs['limit'] = 1
+    points = tuple(locateAll(needleImage, haystackImage, **kwargs))
     if len(points) > 0:
         return points[0]
     else:
         return None
 
 
-def locateOnScreen(image, grayscale=None, region=None, step=1):
+def locateOnScreen(image, **kwargs):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
     screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
-    retVal = locate(image, screenshotIm, grayscale, region=region, step=step)
+    retVal = locate(image, screenshotIm, **kwargs)
     try:
         screenshotIm.fp.close()
     except AttributeError:
@@ -239,11 +240,11 @@ def locateOnScreen(image, grayscale=None, region=None, step=1):
     return retVal
 
 
-def locateAllOnScreen(image, grayscale=None, limit=None, region=None, step=1):
+def locateAllOnScreen(image, **kwargs):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
     screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
-    retVal = locateAll(image, screenshotIm, grayscale, limit, region=region, step=step)
+    retVal = locateAll(image, screenshotIm, **kwargs)
     try:
         screenshotIm.fp.close()
     except AttributeError:
@@ -254,10 +255,10 @@ def locateAllOnScreen(image, grayscale=None, limit=None, region=None, step=1):
     return retVal
 
 
-def locateCenterOnScreen(image, grayscale=None, region=None, step=1):
+def locateCenterOnScreen(image, **kwargs):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    coords = locateOnScreen(image, grayscale=grayscale, region=region, step=step)
+    coords = locateOnScreen(image, **kwargs)
     if coords is None:
         return None
     else:
