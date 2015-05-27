@@ -215,8 +215,6 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
 
 def locate(needleImage, haystackImage, **kwargs):
     # Note: The gymnastics in this function is because we want to make sure to exhaust the iterator so that the needle and haystack files are closed in locateAll.
-    if grayscale is None:
-        grayscale = GRAYSCALE_DEFAULT
     kwargs['limit'] = 1
     points = tuple(locateAll(needleImage, haystackImage, **kwargs))
     if len(points) > 0:
@@ -226,8 +224,6 @@ def locate(needleImage, haystackImage, **kwargs):
 
 
 def locateOnScreen(image, **kwargs):
-    if grayscale is None:
-        grayscale = GRAYSCALE_DEFAULT
     screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
     retVal = locate(image, screenshotIm, **kwargs)
     try:
@@ -241,8 +237,6 @@ def locateOnScreen(image, **kwargs):
 
 
 def locateAllOnScreen(image, **kwargs):
-    if grayscale is None:
-        grayscale = GRAYSCALE_DEFAULT
     screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
     retVal = locateAll(image, screenshotIm, **kwargs)
     try:
@@ -256,8 +250,6 @@ def locateAllOnScreen(image, **kwargs):
 
 
 def locateCenterOnScreen(image, **kwargs):
-    if grayscale is None:
-        grayscale = GRAYSCALE_DEFAULT
     coords = locateOnScreen(image, **kwargs)
     if coords is None:
         return None
