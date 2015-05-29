@@ -16,6 +16,7 @@ import datetime
 import os
 import subprocess
 import sys
+import time
 import errno
 from PIL import Image
 from PIL import ImageOps
@@ -213,22 +214,43 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
         raise ImageNotFoundException('Could not locate the image.')
 
 
-def locate(needleImage, haystackImage, grayscale=None, region=None, step=1):
+def locate(needleImage, haystackImage, **kwargs):
     # Note: The gymnastics in this function is because we want to make sure to exhaust the iterator so that the needle and haystack files are closed in locateAll.
-    if grayscale is None:
-        grayscale = GRAYSCALE_DEFAULT
-    points = tuple(locateAll(needleImage, haystackImage, grayscale, limit=1, region=region, step=step))
+    kwargs['limit'] = 1
+    points = tuple(locateAll(needleImage, haystackImage, **kwargs))
     if len(points) > 0:
         return points[0]
     else:
         return None
 
 
-def locateOnScreen(image, grayscale=None, region=None, step=1):
-    if grayscale is None:
-        grayscale = GRAYSCALE_DEFAULT
+def locateOnScreen(image, minSearchTime=0, **kwargs):
+    """minSearchTime - amount of time in seconds to repeat taking
+    screenshots and trying to locate a match.  The default of 0 performs
+    a single search.
+    """
+    start = time.time()
+    while True:
+        try:
+            screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
+            retVal = locate(image, screenshotIm, **kwargs)
+            try:
+                screenshotIm.fp.close()
+            except AttributeError:
+                # Screenshots on Windows won't have an fp since they came from
+                # ImageGrab, not a file. Screenshots on Linux will have fp set
+                # to None since the file has been unlinked
+                pass
+            if retVal or time.time() - start > minSearchTime:
+                return retVal
+        except ImageNotFoundException:
+            if time.time() - start > minSearchTime:
+                raise
+
+
+def locateAllOnScreen(image, **kwargs):
     screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
-    retVal = locate(image, screenshotIm, grayscale, region=region, step=step)
+    retVal = locateAll(image, screenshotIm, **kwargs)
     try:
         screenshotIm.fp.close()
     except AttributeError:
@@ -239,25 +261,8 @@ def locateOnScreen(image, grayscale=None, region=None, step=1):
     return retVal
 
 
-def locateAllOnScreen(image, grayscale=None, limit=None, region=None, step=1):
-    if grayscale is None:
-        grayscale = GRAYSCALE_DEFAULT
-    screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
-    retVal = locateAll(image, screenshotIm, grayscale, limit, region=region, step=step)
-    try:
-        screenshotIm.fp.close()
-    except AttributeError:
-        # Screenshots on Windows won't have an fp since they came from
-        # ImageGrab, not a file. Screenshots on Linux will have fp set
-        # to None since the file has been unlinked
-        pass
-    return retVal
-
-
-def locateCenterOnScreen(image, grayscale=None, region=None, step=1):
-    if grayscale is None:
-        grayscale = GRAYSCALE_DEFAULT
-    coords = locateOnScreen(image, grayscale=grayscale, region=region, step=step)
+def locateCenterOnScreen(image, **kwargs):
+    coords = locateOnScreen(image, **kwargs)
     if coords is None:
         return None
     else:
