@@ -1,3 +1,4 @@
+v0.1.7, 2015/05/29 -- Exposed confidence setting for OpenCV, added "min search time"
 v0.1.6, 2015/01/10 -- OpenCV integration, fix for limit keyword argument
 v0.1.5, 2014/12/15 -- Actual fix for the region issue.
 v0.1.4, 2014/12/14 -- Updated features for region parameter to several functions.
