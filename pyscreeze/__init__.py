@@ -103,6 +103,8 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
 
+    confidence = float(confidence)
+
     needleImage = _load_cv2(needleImage, grayscale)
     needleHeight, needleWidth = needleImage.shape[:2]
     haystackImage = _load_cv2(haystackImage, grayscale)
