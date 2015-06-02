@@ -62,10 +62,19 @@ def _load_cv2(img, grayscale=None):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
     if isinstance(img, str):
+        # The function imread loads an image from the specified file and
+        # returns it. If the image cannot be read (because of missing
+        # file, improper permissions, unsupported or invalid format),
+        # the function returns an empty matrix
+        # http://docs.opencv.org/3.0-beta/modules/imgcodecs/doc/reading_and_writing_images.html
         if grayscale:
             img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_GRAYSCALE)
         else:
             img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_COLOR)
+        if img_cv is None:
+            raise IOError("Failed to read %s because file is missing, "
+                          "has improper permissions, or is an "
+                          "unsupported or invalid format" % img)
     elif isinstance(img, numpy.ndarray):
         # don't try to convert an already-gray image to gray
         if grayscale and len(img.shape) == 3:  # and img.shape[2] == 3:
