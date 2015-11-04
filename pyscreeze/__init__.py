@@ -27,9 +27,11 @@ try:
 except ImportError:
     useOpenCV = False
 
-
+RUNNING_CV_2 = cv2.__version__[0] < '3'
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
 
+LOAD_COLOR = cv2.CV_LOAD_IMAGE_COLOR if RUNNING_CV_2 else cv2.IMREAD_COLOR
+LOAD_GRAYSCALE = cv2.CV_LOAD_IMAGE_GRAYSCALE if RUNNING_CV_2 else cv2.IMREAD_GRAYSCALE
 RAISE_IF_NOT_FOUND = False
 GRAYSCALE_DEFAULT = False
 
@@ -68,9 +70,9 @@ def _load_cv2(img, grayscale=None):
         # the function returns an empty matrix
         # http://docs.opencv.org/3.0-beta/modules/imgcodecs/doc/reading_and_writing_images.html
         if grayscale:
-            img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_GRAYSCALE)
+            img_cv = cv2.imread(img, LOAD_GRAYSCALE)
         else:
-            img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_COLOR)
+            img_cv = cv2.imread(img, LOAD_COLOR)
         if img_cv is None:
             raise IOError("Failed to read %s because file is missing, "
                           "has improper permissions, or is an "
