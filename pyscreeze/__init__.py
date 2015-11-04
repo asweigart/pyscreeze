@@ -24,14 +24,15 @@ from PIL import ImageOps
 try:
     import cv2, numpy
     useOpenCV = True
+    RUNNING_CV_2 = cv2.__version__[0] < '3'
 except ImportError:
     useOpenCV = False
 
-RUNNING_CV_2 = cv2.__version__[0] < '3'
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
+if useOpenCV:
+    LOAD_COLOR = cv2.CV_LOAD_IMAGE_COLOR if RUNNING_CV_2 else cv2.IMREAD_COLOR
+    LOAD_GRAYSCALE = cv2.CV_LOAD_IMAGE_GRAYSCALE if RUNNING_CV_2 else cv2.IMREAD_GRAYSCALE
 
-LOAD_COLOR = cv2.CV_LOAD_IMAGE_COLOR if RUNNING_CV_2 else cv2.IMREAD_COLOR
-LOAD_GRAYSCALE = cv2.CV_LOAD_IMAGE_GRAYSCALE if RUNNING_CV_2 else cv2.IMREAD_GRAYSCALE
 RAISE_IF_NOT_FOUND = False
 GRAYSCALE_DEFAULT = False
 
