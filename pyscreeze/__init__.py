@@ -24,11 +24,14 @@ from PIL import ImageOps
 try:
     import cv2, numpy
     useOpenCV = True
+    RUNNING_CV_2 = cv2.__version__[0] < '3'
 except ImportError:
     useOpenCV = False
 
-
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
+if useOpenCV:
+    LOAD_COLOR = cv2.CV_LOAD_IMAGE_COLOR if RUNNING_CV_2 else cv2.IMREAD_COLOR
+    LOAD_GRAYSCALE = cv2.CV_LOAD_IMAGE_GRAYSCALE if RUNNING_CV_2 else cv2.IMREAD_GRAYSCALE
 
 RAISE_IF_NOT_FOUND = False
 GRAYSCALE_DEFAULT = False
@@ -62,10 +65,19 @@ def _load_cv2(img, grayscale=None):
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
     if isinstance(img, str):
+        # The function imread loads an image from the specified file and
+        # returns it. If the image cannot be read (because of missing
+        # file, improper permissions, unsupported or invalid format),
+        # the function returns an empty matrix
+        # http://docs.opencv.org/3.0-beta/modules/imgcodecs/doc/reading_and_writing_images.html
         if grayscale:
-            img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_GRAYSCALE)
+            img_cv = cv2.imread(img, LOAD_GRAYSCALE)
         else:
-            img_cv = cv2.imread(img, cv2.CV_LOAD_IMAGE_COLOR)
+            img_cv = cv2.imread(img, LOAD_COLOR)
+        if img_cv is None:
+            raise IOError("Failed to read %s because file is missing, "
+                          "has improper permissions, or is an "
+                          "unsupported or invalid format" % img)
     elif isinstance(img, numpy.ndarray):
         # don't try to convert an already-gray image to gray
         if grayscale and len(img.shape) == 3:  # and img.shape[2] == 3:
@@ -93,6 +105,8 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
     """
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
+
+    confidence = float(confidence)
 
     needleImage = _load_cv2(needleImage, grayscale)
     needleHeight, needleWidth = needleImage.shape[:2]
