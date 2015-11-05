@@ -10,7 +10,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.7'
+__version__ = '0.1.8'
 
 import datetime
 import os
@@ -30,8 +30,13 @@ except ImportError:
 
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
 if useOpenCV:
-    LOAD_COLOR = cv2.CV_LOAD_IMAGE_COLOR if RUNNING_CV_2 else cv2.IMREAD_COLOR
-    LOAD_GRAYSCALE = cv2.CV_LOAD_IMAGE_GRAYSCALE if RUNNING_CV_2 else cv2.IMREAD_GRAYSCALE
+    if RUNNING_CV_2:
+        LOAD_COLOR = cv2.CV_LOAD_IMAGE_COLOR
+        LOAD_GRAYSCALE = cv2.CV_LOAD_IMAGE_GRAYSCALE
+    else:
+        LOAD_COLOR = cv2.IMREAD_COLOR
+        LOAD_GRAYSCALE = cv2.IMREAD_GRAYSCALE
+
 
 RAISE_IF_NOT_FOUND = False
 GRAYSCALE_DEFAULT = False
