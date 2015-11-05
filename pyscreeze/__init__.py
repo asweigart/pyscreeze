@@ -131,14 +131,17 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
 
 
 def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
+    # setup all the arguments
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
+
     needleFileObj = None
-    haystackFileObj = None
     if isinstance(needleImage, str):
         # 'image' is a filename, load the Image object
         needleFileObj = open(needleImage, 'rb')
         needleImage = Image.open(needleFileObj)
+
+    haystackFileObj = None
     if isinstance(haystackImage, str):
         # 'image' is a filename, load the Image object
         haystackFileObj = open(haystackImage, 'rb')
@@ -149,15 +152,17 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
     else:
         region = (0, 0) # set to 0 because the code always accounts for a region
 
-    if grayscale:
+    if grayscale: # if grayscale mode is on, convert the needle and haystack images to grayscale
         needleImage = ImageOps.grayscale(needleImage)
         haystackImage = ImageOps.grayscale(haystackImage)
     else:
+        # if not using grayscale, make sure we are comparing RGB images, not RGBA images.
         if needleImage.mode == 'RGBA':
             needleImage = needleImage.convert('RGB')
         if haystackImage.mode == 'RGBA':
             haystackImage = haystackImage.convert('RGB')
 
+    # setup some constants we'll be using in this function
     needleWidth, needleHeight = needleImage.size
     haystackWidth, haystackHeight = haystackImage.size
 
@@ -167,8 +172,8 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
     needleImageRows = [needleImageData[y * needleWidth:(y+1) * needleWidth] for y in range(needleHeight)] # LEFT OFF - check this
     needleImageFirstRow = needleImageRows[0]
 
-    assert len(needleImageFirstRow) == needleWidth
-    assert [len(row) for row in needleImageRows] == [needleWidth] * needleHeight
+    assert len(needleImageFirstRow) == needleWidth, 'For some reason, the calculated width of first row of the needle image is not the same as the width of the image.'
+    assert [len(row) for row in needleImageRows] == [needleWidth] * needleHeight, 'For some reason, the needleImageRows aren\'t the same size as the original image.'
 
     numMatchesFound = 0
 
@@ -183,7 +188,7 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
     firstFindFunc = _kmp
     step = 1 # hard-code step as 1 until a way to improve it can be figured out.
 
-    for y in range(haystackHeight):
+    for y in range(haystackHeight): # start at the leftmost column
         for matchx in firstFindFunc(needleImageFirstRow, haystackImageData[y * haystackWidth:(y+1) * haystackWidth], step):
             foundMatch = True
             for searchy in range(1, needleHeight, step):
