@@ -53,6 +53,8 @@ The `locateCenterOnScreen()` function is probably the one you want to use most o
 
 On a 1920 x 1080 screen, the locate function calls take about 1 or 2 seconds. This may be too slow for action video games, but works for most purposes and applications.
 
+If speed is important, install the optional opencv library (`pip install cv2`). The `locateAll` computation will use it if available, and take less than 1 millisecond to find all matches in a full-screen search. (This does not include the time required to capture a screenshot.)
+
 There are several "locate" functions. They all start looking at the top-left corner of the screen (or image) and look to the left and then down. The arguments can either be a
 
 - `locateOnScreen(image, grayscale=False)` - Returns (left, top, width, height) coordinate of first found instance of the `image` on the screen. Returns None if not found on the screen.
