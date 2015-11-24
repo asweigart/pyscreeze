@@ -69,7 +69,7 @@ def _load_cv2(img, grayscale=None):
 
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    if isinstance(img, str):
+    if isinstance(img, str) or isinstance(img, unicode):
         # The function imread loads an image from the specified file and
         # returns it. If the image cannot be read (because of missing
         # file, improper permissions, unsupported or invalid format),
@@ -162,13 +162,13 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
         grayscale = GRAYSCALE_DEFAULT
 
     needleFileObj = None
-    if isinstance(needleImage, str):
+    if isinstance(needleImage, str) or isinstance(needleImage, unicode):
         # 'image' is a filename, load the Image object
         needleFileObj = open(needleImage, 'rb')
         needleImage = Image.open(needleFileObj)
 
     haystackFileObj = None
-    if isinstance(haystackImage, str):
+    if isinstance(haystackImage, str) or isinstance(haystackImage, unicode):
         # 'image' is a filename, load the Image object
         haystackFileObj = open(haystackImage, 'rb')
         haystackImage = Image.open(haystackFileObj)
