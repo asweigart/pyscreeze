@@ -18,8 +18,11 @@ import subprocess
 import sys
 import time
 import errno
-from PIL import Image
-from PIL import ImageOps
+try:
+    from PIL import Image
+    from PIL import ImageOps
+except ImportError:
+    pass
 
 try:
     import cv2, numpy
@@ -416,7 +419,10 @@ elif sys.platform == 'darwin':
     screenshot = _screenshot_osx
 elif sys.platform == 'win32':
     screenshot = _screenshot_win32
-    from PIL import ImageGrab
+    try:
+        from PIL import ImageGrab
+    except ImportError:
+        pass
 else:
     screenshot = _screenshot_linux
 
