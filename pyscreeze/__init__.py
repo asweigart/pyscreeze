@@ -149,22 +149,38 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
         yield (x, y, needleWidth, needleHeight)
 
 
-def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
+def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1, maskImage=None, maskChannel=None):
     # setup all the arguments
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
+
+    maskFileObj = None
+    maskIsNeedle = False
+    if isinstance(maskImage, str):
+        if maskImage == needleImage:
+            maskIsNeedle = True
+        else:
+            maskFileObj = open(maskImage, 'rb')
+            maskImage = Image.open(maskFileObj)
 
     needleFileObj = None
     if isinstance(needleImage, str):
         # 'image' is a filename, load the Image object
         needleFileObj = open(needleImage, 'rb')
         needleImage = Image.open(needleFileObj)
+        if maskIsNeedle:
+            maskImage = needleImage
 
     haystackFileObj = None
     if isinstance(haystackImage, str):
         # 'image' is a filename, load the Image object
         haystackFileObj = open(haystackImage, 'rb')
         haystackImage = Image.open(haystackFileObj)
+
+    if maskChannel is not None and maskImage is None:
+        maskImage = needleImage
+    elif maskImage and maskChannel is None:
+        maskChannel = 0
 
     if region is not None:
         haystackImage = haystackImage.crop((region[0], region[1], region[0] + region[2], region[1] + region[3]))
@@ -196,36 +212,97 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
 
     numMatchesFound = 0
 
-    # NOTE: After running benchmark.py on the following code, it seem that having a step
-    # value greater than 1 does not give *any* significant performance improvements.
-    # Since using a step higher than 1 makes for less accurate matches, it will be
-    # set to 1.
-    #if step == 1:
-    #    firstFindFunc = _kmp
-    #else:
-    #    firstFindFunc = _steppingFind
-    firstFindFunc = _kmp
-    step = 1 # hard-code step as 1 until a way to improve it can be figured out.
+    # Mask image uses brute force algorithm for now.
+    if maskImage:
+        maskWidth, maskHeight = maskImage.size
+        assert maskWidth >= needleWidth and maskHeight >= needleHeight
 
-    for y in range(haystackHeight): # start at the leftmost column
-        for matchx in firstFindFunc(needleImageFirstRow, haystackImageData[y * haystackWidth:(y+1) * haystackWidth], step):
-            foundMatch = True
-            for searchy in range(1, needleHeight, step):
-                haystackStart = (searchy + y) * haystackWidth + matchx
-                if needleImageData[searchy * needleWidth:(searchy+1) * needleWidth] != haystackImageData[haystackStart:haystackStart + needleWidth]:
-                    foundMatch = False
-                    break
-            if foundMatch:
-                # Match found, report the x, y, width, height of where the matching region is in haystack.
-                numMatchesFound += 1
-                yield (matchx + region[0], y + region[1], needleWidth, needleHeight)
-                if limit is not None and numMatchesFound >= limit:
-                    # Limit has been reached. Close file handles.
-                    if needleFileObj is not None:
-                        needleFileObj.close()
-                    if haystackFileObj is not None:
-                        haystackFileObj.close()
-                    raise StopIteration()
+        # Mask and needle will be different if needle was converted to grayscale or RGB,
+        # even if using the same source.
+        if maskImage == needleImage:
+            maskImageData = needleImageData
+        else:
+            maskImageData = tuple(maskImage.getdata())
+
+        # Find the extents and get just the visible pixel data
+        maskLeft = maskWidth
+        maskRight = 0
+        maskTop = maskHeight
+        maskBottom = 0
+        maskedNeedleData = []
+        for needleY in range(needleHeight):
+            for needleX in range(needleWidth):
+                maskIndex = needleY * maskWidth + needleX
+                maskVal = maskImageData[maskIndex][maskChannel]
+                if maskVal:
+                    needleIndex = needleY * needleWidth + needleX
+                    needleColor = needleImageData[needleIndex]
+                    haystackOffset = needleY * haystackWidth + needleX
+                    maskedNeedleData.append( (needleColor, haystackOffset) )
+
+                    maskLeft = min(maskLeft, needleX)
+                    maskRight = max(maskRight, needleX)
+                    maskTop = min(maskTop, needleY)
+                    maskBottom = max(maskTop, needleY)
+
+
+        for haystackY in range(-maskTop, haystackHeight - maskBottom):
+            for haystackX in range(-maskLeft, haystackWidth - maskRight):
+                haystackIndex = haystackY * haystackWidth + haystackX
+                foundMatch = True
+
+                for needleColor, haystackOffset in maskedNeedleData:
+                    haystackColor = haystackImageData[haystackIndex + haystackOffset]
+                    if needleColor != haystackColor:
+                        foundMatch = False
+                        break
+
+                if foundMatch:
+                    # Match found, report the x, y, width, height of where the matching region is in haystack.
+                    numMatchesFound += 1
+                    # TODO: It is possible for masked images to go outside the bounds of the haystack image.
+                    # Should we allow this or clamp to the boundaries?
+                    yield (haystackX, haystackY, needleWidth, needleHeight)
+                    if limit is not None and numMatchesFound >= limit:
+                        # Limit has been reached. Close file handles.
+                        if needleFileObj is not None:
+                            needleFileObj.close()
+                        if haystackFileObj is not None:
+                            haystackFileObj.close()
+                        if maskFileObj is not None:
+                            maskFileObj.close()
+                        raise StopIteration()
+    else:
+        # NOTE: After running benchmark.py on the following code, it seem that having a step
+        # value greater than 1 does not give *any* significant performance improvements.
+        # Since using a step higher than 1 makes for less accurate matches, it will be
+        # set to 1.
+        #if step == 1:
+        #    firstFindFunc = _kmp
+        #else:
+        #    firstFindFunc = _steppingFind
+        firstFindFunc = _kmp
+        step = 1 # hard-code step as 1 until a way to improve it can be figured out.
+
+        for y in range(haystackHeight): # start at the leftmost column
+            for matchx in firstFindFunc(needleImageFirstRow, haystackImageData[y * haystackWidth:(y+1) * haystackWidth], step):
+                foundMatch = True
+                for searchy in range(1, needleHeight, step):
+                    haystackStart = (searchy + y) * haystackWidth + matchx
+                    if needleImageData[searchy * needleWidth:(searchy+1) * needleWidth] != haystackImageData[haystackStart:haystackStart + needleWidth]:
+                        foundMatch = False
+                        break
+                if foundMatch:
+                    # Match found, report the x, y, width, height of where the matching region is in haystack.
+                    numMatchesFound += 1
+                    yield (matchx + region[0], y + region[1], needleWidth, needleHeight)
+                    if limit is not None and numMatchesFound >= limit:
+                        # Limit has been reached. Close file handles.
+                        if needleFileObj is not None:
+                            needleFileObj.close()
+                        if haystackFileObj is not None:
+                            haystackFileObj.close()
+                        raise StopIteration()
 
 
     # There was no limit or the limit wasn't reached, but close the file handles anyway.
@@ -233,6 +310,8 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
         needleFileObj.close()
     if haystackFileObj is not None:
         haystackFileObj.close()
+    if maskFileObj is not None:
+        maskFileObj.close()
 
     if RAISE_IF_NOT_FOUND and numMatchesFound == 0:
         raise ImageNotFoundException('Could not locate the image.')
