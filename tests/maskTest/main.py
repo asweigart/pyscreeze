@@ -36,12 +36,11 @@ def doTest(testName, expected, needleImageName, haystackImageName, maskImageName
 		print("%s passed" % (testName))
 
 def runTests():
-	# result = tuple(pyscreeze.locateAll("crossRGB.png", "search2.png", maskImage="crossRGB.png", maskChannel=0))
-	# _printResult(result)
-	# # ((13, 5, 5, 5), (16, 22, 5, 5))
-	# result = tuple(pyscreeze.locateAll("crossRGB.png", "search2.png", maskChannel=0))
+	# result = tuple(pyscreeze.locateAll("crossRGB.png", "search2.png", maskImage="crossMaskBlack.png", maskChannel=0))
 	# _printResult(result)
 
+	expected = tuple()
+	doTest("blank mask", expected, "crossRGB.png", "search2.png", "crossMaskBlack.png", None)
 
 	expected = ((13, 5, 5, 5), (25, 5, 5, 5), (13, 9, 5, 5), (16, 22, 5, 5))
 	doTest("cross maskImg", expected, "crossRGB.png", "search2.png", "crossRGB.png", None)
