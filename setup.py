@@ -1,9 +1,14 @@
+import re
 from setuptools import setup
 
+# Load version from module (without loading the whole module)
+with open('pyscreeze/__init__.py', 'r') as fd:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+                        fd.read(), re.MULTILINE).group(1)
 
 setup(
     name='PyScreeze',
-    version=__import__('pyscreeze').__version__,
+    version=version,
     url='https://github.com/asweigart/pyscreeze',
     author='Al Sweigart',
     author_email='al@inventwithpython.com',
