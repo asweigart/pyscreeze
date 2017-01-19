@@ -3,3 +3,4 @@ _build
 *.pyc
 __pycache__
 PyAutoGUI.egg-info
+PyScreeze.egg-info

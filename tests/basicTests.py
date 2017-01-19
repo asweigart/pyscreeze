@@ -3,7 +3,10 @@ import sys
 import os
 import random
 
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:
+    pass
 sys.path.insert(0, os.path.abspath('..'))
 import pyscreeze
 
@@ -94,6 +97,24 @@ class TestMagicNumbers(unittest.TestCase):
         self.assertFalse(isJpg(__file__))
 
 class TestGeneral(unittest.TestCase):
+    def test_pillowNotPresent(self):
+        # Testing that we can still import pyscreeze
+        # even if pillow is not present
+
+        # Setting module's dictionary entry to None will raise
+        # ImportError while deleting the entry will make the interpreter
+        # continue searching for module
+        sys.modules["PIL"] = None
+
+        if sys.version_info[0] == 2:
+            reload(pyscreeze)
+        elif sys.version_info[:2] <= (3, 3):
+            import imp
+            imp.reload(pyscreeze)
+        else:
+            import importlib
+            importlib.reload(pyscreeze)
+
     def test_namesDefined(self):
         pyscreeze.locateAll
         pyscreeze.locate
