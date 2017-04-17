@@ -305,7 +305,7 @@ def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen
     screenshotIm.save(filename)
 
 
-def _screenshot_win32(imageFilename=None, region=None):
+def _screenshot_win32(imageFilename=None, region=None, silent=True):
     im = ImageGrab.grab()
     if region is not None:
         assert len(region) == 4, 'region argument must be a tuple of four ints'
@@ -316,12 +316,17 @@ def _screenshot_win32(imageFilename=None, region=None):
     return im
 
 
-def _screenshot_osx(imageFilename=None, region=None):
+def _screenshot_osx(imageFilename=None, region=None, silent=True):
     if imageFilename is None:
         tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
         tmpFilename = imageFilename
-    subprocess.call(['screencapture', '-x', tmpFilename])
+
+    if silent:
+        subprocess.call(['screencapture', '-x', tmpFilename])
+    else:
+        subprocess.call(['screencapture', tmpFilename])
+
     im = Image.open(tmpFilename)
 
     if region is not None:
@@ -337,7 +342,7 @@ def _screenshot_osx(imageFilename=None, region=None):
     return im
 
 
-def _screenshot_linux(imageFilename=None, region=None):
+def _screenshot_linux(imageFilename=None, region=None, silent=True):
     if not scrotExists:
         raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
     if imageFilename is None:
