@@ -58,6 +58,8 @@ except OSError as ex:
         pass
     else:
         raise
+except IOError as er:
+    pass
 
 
 class ImageNotFoundException(Exception):
