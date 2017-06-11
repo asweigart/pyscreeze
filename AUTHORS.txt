@@ -2,7 +2,8 @@ Here is an inevitably incomplete list of MUCH-APPRECIATED CONTRIBUTORS --
 people who have submitted patches, reported bugs, added translations, helped
 answer newbie questions, and generally made PyScreeze that much better:
 
-Al Sweigart
+Al Sweigart https://github.com/asweigart
+Aneesh Kumar https://github.com/anush0247
 Ari Lacenski https://github.com/tensory
 Brian Redmond https://github.com/bredmond
 Christopher Valles https://github.com/christophervalles
