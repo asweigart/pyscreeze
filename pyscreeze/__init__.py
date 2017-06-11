@@ -188,7 +188,7 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
     needleWidth, needleHeight = needleImage.size
     haystackWidth, haystackHeight = haystackImage.size
 
-    needleImageData = tuple(needleImage.getdata()) # TODO - rename to needleImageData??
+    needleImageData = tuple(needleImage.getdata())
     haystackImageData = tuple(haystackImage.getdata())
 
     needleImageRows = [needleImageData[y * needleWidth:(y+1) * needleWidth] for y in range(needleHeight)] # LEFT OFF - check this
@@ -199,16 +199,17 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
 
     numMatchesFound = 0
 
-    # NOTE: After running benchmark.py on the following code, it seem that having a step
+    # NOTE: After running tests/benchmarks.py on the following code, it seem that having a step
     # value greater than 1 does not give *any* significant performance improvements.
     # Since using a step higher than 1 makes for less accurate matches, it will be
     # set to 1.
-    #if step == 1:
-    #    firstFindFunc = _kmp
-    #else:
-    #    firstFindFunc = _steppingFind
-    firstFindFunc = _kmp
     step = 1 # hard-code step as 1 until a way to improve it can be figured out.
+
+    if step == 1:
+        firstFindFunc = _kmp
+    else:
+        firstFindFunc = _steppingFind
+
 
     for y in range(haystackHeight): # start at the leftmost column
         for matchx in firstFindFunc(needleImageFirstRow, haystackImageData[y * haystackWidth:(y+1) * haystackWidth], step):
