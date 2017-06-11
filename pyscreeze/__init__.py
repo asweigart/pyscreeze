@@ -403,11 +403,17 @@ def center(coords):
 
 
 def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
-    r, g, b = screenshot().getpixel((x, y))
-    exR, exG, exB = expectedRGBColor
-
-    return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance)
-
+    pixel = screenshot().getpixel((x, y))
+    if len(pixel) == 3 or len(expectedRGBColor) == 3: #RGB mode
+        r, g, b = pixel[:3]
+        exR, exG, exB = expectedRGBColor[:3]
+        return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance)
+    elif len(pixel) == 4 and len(expectedRGBColor) == 4: #RGBA mode
+        r, g, b, a = pixel
+        exR, exG, exB, exA = expectedRGBColor
+        return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance) and (abs(a - exA) <= tolerance)
+    else:
+        assert False, 'Color mode was expected to be length 3 (RGB) or 4 (RGBA), but pixel is length %s and expectedRGBColor is length %s' % (len(pixel), len(expectedRGBColor))
 
 def pixel(x, y):
     return screenshot().getpixel((x, y))
