@@ -1,4 +1,4 @@
-import random, sys, os, time, cProfile, pstats, pprint
+import sys, os, time, cProfile, pstats
 
 from PIL import Image
 sys.path.insert(0, os.path.abspath('..'))
@@ -89,6 +89,8 @@ def smallNeedleVsLargeNeedle():
     pstats.Stats(profiler).sort_stats('cumulative').print_stats(1)
 
 
-
-#largegrayscaleTest()
-smallgrayscaleTest()
+if __name__ == '__main__':
+    # TODO - set up a better test runner system for this
+    locateTest()
+    #largegrayscaleTest()
+    #smallgrayscaleTest()
