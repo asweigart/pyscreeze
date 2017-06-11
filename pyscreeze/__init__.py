@@ -47,10 +47,9 @@ GRAYSCALE_DEFAULT = False
 scrotExists = False
 try:
     if sys.platform not in ('java', 'darwin', 'win32'):
-        with open(os.devnull, 'w') as devnull:
-            whichProc = subprocess.Popen(
-                ['which', 'scrot'], stdout=devnull, stderr=devnull)
-            scrotExists = whichProc.wait() == 0
+        whichProc = subprocess.Popen(
+            ['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        scrotExists = whichProc.wait() == 0
 except OSError as ex:
     if ex.errno == errno.ENOENT:
         # if there is no "which" program to find scrot, then assume there
