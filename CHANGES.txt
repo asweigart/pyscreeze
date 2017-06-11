@@ -1,3 +1,4 @@
+v0.1.10, 2017/06/11 -- Fixed Google App Engine failure, have setup.py pull version info from file, fix RGB/RGBA bug in pixelMatchesColor()
 v0.1.9, 2017/01/19 -- Put imports into a try/except, to prevent errors if PIL is not present.
 v0.1.8, 2015/06/02 -- Add more error handling for OpenCV
 v0.1.7, 2015/05/29 -- Exposed confidence setting for OpenCV, added "min search time"
