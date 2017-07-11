@@ -10,7 +10,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.12'
+__version__ = '0.1.13'
 
 import datetime
 import os
@@ -422,10 +422,10 @@ def pixel(x, y):
         # On Windows, calling GetDC() and GetPixel() is twice as fast as using our screenshot() function.
         hdc = windll.user32.GetDC(0)
         color = windll.gdi32.GetPixel(hdc, x, y)
-        # color is in the format 0xrrggbb
-        r = color // (256 ** 2)
+        # color is in the format 0xbbggrr https://msdn.microsoft.com/en-us/library/windows/desktop/dd183449(v=vs.85).aspx
+        r = color % 256
         g = (color // 256) % 256
-        b = color % 256
+        b = color // (256 ** 2)
         return (r, g, b)
     else:
         return screenshot().getpixel((x, y))
