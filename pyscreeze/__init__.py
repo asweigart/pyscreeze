@@ -10,7 +10,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.11'
+__version__ = '0.1.12'
 
 import datetime
 import os
@@ -58,6 +58,9 @@ except OSError as ex:
     else:
         raise
 
+
+if sys.platform == 'win32':
+    from ctypes import windll
 
 class ImageNotFoundException(Exception):
     pass
@@ -402,20 +405,30 @@ def center(coords):
 
 
 def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
-    pixel = screenshot().getpixel((x, y))
-    if len(pixel) == 3 or len(expectedRGBColor) == 3: #RGB mode
-        r, g, b = pixel[:3]
+    pix = pixel(x, y)
+    if len(pix) == 3 or len(expectedRGBColor) == 3: #RGB mode
+        r, g, b = pix[:3]
         exR, exG, exB = expectedRGBColor[:3]
         return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance)
-    elif len(pixel) == 4 and len(expectedRGBColor) == 4: #RGBA mode
-        r, g, b, a = pixel
+    elif len(pix) == 4 and len(expectedRGBColor) == 4: #RGBA mode
+        r, g, b, a = pix
         exR, exG, exB, exA = expectedRGBColor
         return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance) and (abs(a - exA) <= tolerance)
     else:
-        assert False, 'Color mode was expected to be length 3 (RGB) or 4 (RGBA), but pixel is length %s and expectedRGBColor is length %s' % (len(pixel), len(expectedRGBColor))
+        assert False, 'Color mode was expected to be length 3 (RGB) or 4 (RGBA), but pixel is length %s and expectedRGBColor is length %s' % (len(pix), len(expectedRGBColor))
 
 def pixel(x, y):
-    return screenshot().getpixel((x, y))
+    if sys.platform == 'win32':
+        # On Windows, calling GetDC() and GetPixel() is twice as fast as using our screenshot() function.
+        hdc = windll.user32.GetDC(0)
+        color = windll.gdi32.GetPixel(hdc, x, y)
+        # color is in the format 0xrrggbb
+        r = color // (256 ** 2)
+        g = (color // 256) % 256
+        b = color % 256
+        return (r, g, b)
+    else:
+        return screenshot().getpixel((x, y))
 
 
 # set the screenshot() function based on the platform running this module
