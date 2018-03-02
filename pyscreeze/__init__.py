@@ -10,7 +10,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.13'
+__version__ = '0.1.14'
 
 import datetime
 import os
@@ -309,7 +309,10 @@ def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen
 
 
 def _screenshot_win32(imageFilename=None, region=None):
-    im = ImageGrab.grab()
+    try:
+        im = ImageGrab.grab()
+    except NameError:
+        raise ImportError('Pillow module must be installed to use screenshot functions on Windows.')
     if region is not None:
         assert len(region) == 4, 'region argument must be a tuple of four ints'
         region = [int(x) for x in region]
