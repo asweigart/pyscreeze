@@ -9,6 +9,7 @@ Brian Redmond https://github.com/bredmond
 Christopher Valles https://github.com/christophervalles
 Jeremy R. Gray https://github.com/jeremygray
 Jon Winsley https://github.com/glitchassassin
+Julien Schueller https://github.com/jschueller
 Lauritz Thaulow https://github.com/LauritzThaulow
 Rob Putt https://github.com/robputt796
 vorstrelok https://github.com/vorstrelok
