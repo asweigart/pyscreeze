@@ -1,3 +1,4 @@
+v0.1.18, 2018/07/19 -- Fixing MANIFEST.in to include readme, which cause installation failure.
 v0.1.17, 2018/07/18 -- Adjusted setup.py to include the long description.
 v0.1.16, 2018/07/18 -- Adjusted setup.py to include the long description.
 v0.1.15, 2018/07/18 -- Fixed a bug involving the generator for locateAll().

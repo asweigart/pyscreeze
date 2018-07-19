@@ -1,1 +1,8 @@
 include LICENSE.txt
+include *.md
+recursive-include docs *.bat
+recursive-include docs *.py
+recursive-include docs *.rst
+recursive-include docs Makefile
+recursive-include pyautogui *.py
+recursive-include tests *.py
