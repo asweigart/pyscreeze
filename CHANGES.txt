@@ -1,3 +1,5 @@
+v0.1.17, 2018/07/18 -- Adjusted setup.py to include the long description.
+v0.1.16, 2018/07/18 -- Adjusted setup.py to include the long description.
 v0.1.15, 2018/07/18 -- Fixed a bug involving the generator for locateAll().
 v0.1.14, 2018/03/02 -- Added check for Pillow installation when calling screenshot() on Windows.
 v0.1.13, 2017/06/13 -- Fixed RGB ordering bug for pixel() in 0.1.12

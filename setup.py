@@ -17,6 +17,7 @@ setup(
     author='Al Sweigart',
     author_email='al@inventwithpython.com',
     description='A simple, cross-platform screenshot module for Python 2 and 3.',
+    long_description=long_description,
     license='BSD',
     packages=['pyscreeze'],
     test_suite='tests',
