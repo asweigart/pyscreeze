@@ -10,7 +10,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.14'
+__version__ = '0.1.15'
 
 import datetime
 import os
@@ -231,7 +231,7 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
                         needleFileObj.close()
                     if haystackFileObj is not None:
                         haystackFileObj.close()
-                    raise StopIteration()
+                    return
 
 
     # There was no limit or the limit wasn't reached, but close the file handles anyway.

@@ -1,3 +1,4 @@
+v0.1.15, 2018/07/18 -- Fixed a bug involving the generator for locateAll().
 v0.1.14, 2018/03/02 -- Added check for Pillow installation when calling screenshot() on Windows.
 v0.1.13, 2017/06/13 -- Fixed RGB ordering bug for pixel() in 0.1.12
 v0.1.12, 2017/06/12 -- Used the win32 GetPixel() function to speed up the pixel() function 2x.
