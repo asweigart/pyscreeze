@@ -13,3 +13,4 @@ Julien Schueller https://github.com/jschueller
 Lauritz Thaulow https://github.com/LauritzThaulow
 Rob Putt https://github.com/robputt796
 vorstrelok https://github.com/vorstrelok
+zerocewl https://github.com/zerocewl
