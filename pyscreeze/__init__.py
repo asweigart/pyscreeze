@@ -12,6 +12,7 @@ http://ubuntuforums.org/showthread.php?t=1751455
 
 __version__ = '0.1.18'
 
+import collections
 import datetime
 import os
 import subprocess
@@ -41,7 +42,6 @@ if useOpenCV:
         LOAD_GRAYSCALE = cv2.IMREAD_GRAYSCALE
 
 
-RAISE_IF_NOT_FOUND = False
 GRAYSCALE_DEFAULT = False
 
 scrotExists = False
@@ -62,8 +62,12 @@ except OSError as ex:
 if sys.platform == 'win32':
     from ctypes import windll
 
+
+Box = collections.namedtuple('Box', 'left top width height')
+
+
 class ImageNotFoundException(Exception):
-    pass
+    pass # This is an exception class raised when the locate functions fail.
 
 
 def _load_cv2(img, grayscale=None):
@@ -144,14 +148,14 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
     match_indices = numpy.arange(result.size)[(result > confidence).flatten()]
     matches = numpy.unravel_index(match_indices[:limit], result.shape)
 
-    if len(matches[0]) == 0 and RAISE_IF_NOT_FOUND:
+    if len(matches[0]) == 0:
         raise ImageNotFoundException('Could not locate the image (highest confidence = %.3f)' % result.max())
 
     # use a generator for API consistency:
     matchx = matches[1] * step + region[0]  # vectorized
     matchy = matches[0] * step + region[1]
     for x, y in zip(matchx, matchy):
-        yield (x, y, needleWidth, needleHeight)
+        yield Box(x, y, needleWidth, needleHeight)
 
 
 def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
@@ -224,7 +228,7 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
             if foundMatch:
                 # Match found, report the x, y, width, height of where the matching region is in haystack.
                 numMatchesFound += 1
-                yield (matchx + region[0], y + region[1], needleWidth, needleHeight)
+                yield Box(matchx + region[0], y + region[1], needleWidth, needleHeight)
                 if limit is not None and numMatchesFound >= limit:
                     # Limit has been reached. Close file handles.
                     if needleFileObj is not None:
@@ -240,7 +244,7 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
     if haystackFileObj is not None:
         haystackFileObj.close()
 
-    if RAISE_IF_NOT_FOUND and numMatchesFound == 0:
+    if numMatchesFound == 0:
         raise ImageNotFoundException('Could not locate the image.')
 
 
@@ -251,7 +255,7 @@ def locate(needleImage, haystackImage, **kwargs):
     if len(points) > 0:
         return points[0]
     else:
-        return None
+        raise ImageNotFoundException('Could not locate the image.')
 
 
 def locateOnScreen(image, minSearchTime=0, **kwargs):
@@ -293,10 +297,7 @@ def locateAllOnScreen(image, **kwargs):
 
 def locateCenterOnScreen(image, **kwargs):
     coords = locateOnScreen(image, **kwargs)
-    if coords is None:
-        return None
-    else:
-        return center(coords)
+    return center(coords)
 
 
 def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen.png'):
