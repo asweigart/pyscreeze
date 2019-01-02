@@ -64,7 +64,8 @@ if sys.platform == 'win32':
 
 
 Box = collections.namedtuple('Box', 'left top width height')
-
+Point = collections.namedtuple('Point', 'x y')
+RGB = collections.namedtuple('RGB', 'red green blue')
 
 class ImageNotFoundException(Exception):
     pass # This is an exception class raised when the locate functions fail.
@@ -405,7 +406,7 @@ def _steppingFind(needle, haystack, step):
 
 
 def center(coords):
-    return (coords[0] + int(coords[2] / 2), coords[1] + int(coords[3] / 2))
+    return Point(coords[0] + int(coords[2] / 2), coords[1] + int(coords[3] / 2))
 
 
 def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
@@ -432,7 +433,7 @@ def pixel(x, y):
         b = color // (256 ** 2)
         return (r, g, b)
     else:
-        return screenshot().getpixel((x, y))
+        return RGB(*screenshot().getpixel((x, y)))
 
 
 # set the screenshot() function based on the platform running this module
