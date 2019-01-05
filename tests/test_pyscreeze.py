@@ -1,7 +1,6 @@
 import unittest
 import sys
 import os
-import random
 
 try:
     from PIL import Image
@@ -152,8 +151,10 @@ class TestGeneral(unittest.TestCase):
         self.assertEqual((94, 94, 4, 4), tuple(pyscreeze.locate('slash.png', 'haystack1.png', grayscale=True)))
         self.assertEqual((93, 93, 4, 4), tuple(pyscreeze.locate('slash.png', 'haystack2.png', grayscale=True)))
 
-        self.assertEqual(None, pyscreeze.locate('slash.png', 'colornoise.png'))
-        self.assertEqual(None, pyscreeze.locate('slash.png', 'colornoise.png', grayscale=True))
+        with self.assertRaises(pyscreeze.ImageNotFoundException):
+            pyscreeze.locate('slash.png', 'colornoise.png')
+        with self.assertRaises(pyscreeze.ImageNotFoundException):
+            pyscreeze.locate('slash.png', 'colornoise.png', grayscale=True)
 
 
     def test_locate_im(self):
@@ -172,8 +173,10 @@ class TestGeneral(unittest.TestCase):
         self.assertEqual((94, 94, 4, 4), tuple(pyscreeze.locate(slashIm, haystack1Im, grayscale=True)))
         self.assertEqual((93, 93, 4, 4), tuple(pyscreeze.locate(slashIm, haystack2Im, grayscale=True)))
 
-        self.assertEqual(None, pyscreeze.locate(slashIm, colorNoiseIm))
-        self.assertEqual(None, pyscreeze.locate(slashIm, colorNoiseIm, grayscale=True))
+        with self.assertRaises(pyscreeze.ImageNotFoundException):
+            pyscreeze.locate(slashIm, colorNoiseIm)
+        with self.assertRaises(pyscreeze.ImageNotFoundException):
+            pyscreeze.locate(slashIm, colorNoiseIm, grayscale=True)
 
         slashFp.close()
         haystack1Fp.close()
@@ -220,14 +223,9 @@ class TestGeneral(unittest.TestCase):
         slashFp = open('slash.png' ,'rb')
         slashIm = Image.open(slashFp)
 
-        oldSetting = pyscreeze.RAISE_IF_NOT_FOUND
+        with self.assertRaises(pyscreeze.ImageNotFoundException):
+            pyscreeze.locate(slashIm, colorNoiseIm)
 
-        pyscreeze.RAISE_IF_NOT_FOUND = True
-        self.assertRaises(pyscreeze.ImageNotFoundException, pyscreeze.locate, slashIm, colorNoiseIm)
-        pyscreeze.RAISE_IF_NOT_FOUND = False
-        self.assertEqual(None, pyscreeze.locate(slashIm, colorNoiseIm))
-
-        pyscreeze.RAISE_IF_NOT_FOUND = oldSetting
         colorNoiseFp.close()
         slashFp.close()
 
@@ -238,6 +236,8 @@ class TestGeneral(unittest.TestCase):
         self.assertEqual((100, 100), pyscreeze.center((0, 0, 200, 200)))
         self.assertEqual((100, 100), pyscreeze.center((50, 50, 100, 100)))
 
+    """
+    # Disabling step test; we don't use this feature because it does not bring any significant performance improvement.
     def test_locate_im_step(self):
         slashFp = open('slash.png' ,'rb')
         haystack1Fp = open('haystack1.png' ,'rb')
@@ -262,6 +262,7 @@ class TestGeneral(unittest.TestCase):
         haystack1Fp.close()
         haystack2Fp.close()
         colorNoiseFp.close()
+        """
 
 
 if __name__ == '__main__':
