@@ -92,6 +92,8 @@ def _load_cv2(img, grayscale=None):
         # don't try to convert an already-gray image to gray
         if grayscale and len(img.shape) == 3:  # and img.shape[2] == 3:
             img_cv = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            img_cv = img
     elif hasattr(img, 'convert'):
         # assume its a PIL.Image, convert to cv format
         img_array = numpy.array(img.convert('RGB'))
