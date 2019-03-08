@@ -10,7 +10,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.19'
+__version__ = '0.1.20'
 
 import collections
 import datetime
@@ -43,6 +43,12 @@ if useOpenCV:
 
 
 GRAYSCALE_DEFAULT = False
+
+# For version 0.1.19 I changed it so that ImageNotFoundException was raised
+# instead of returning None. In hindsight, this change came too late, so I'm
+# changing it back to returning None. But I'm also including this option for
+# folks who would rather have it raise an exception.
+USE_IMAGE_NOT_FOUND_EXCEPTION = False
 
 scrotExists = False
 try:
@@ -150,7 +156,10 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
     matches = numpy.unravel_index(match_indices[:limit], result.shape)
 
     if len(matches[0]) == 0:
-        raise ImageNotFoundException('Could not locate the image (highest confidence = %.3f)' % result.max())
+        if USE_IMAGE_NOT_FOUND_EXCEPTION:
+            raise ImageNotFoundException('Could not locate the image (highest confidence = %.3f)' % result.max())
+        else:
+            return None
 
     # use a generator for API consistency:
     matchx = matches[1] * step + region[0]  # vectorized
@@ -246,7 +255,10 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
         haystackFileObj.close()
 
     if numMatchesFound == 0:
-        raise ImageNotFoundException('Could not locate the image.')
+        if USE_IMAGE_NOT_FOUND_EXCEPTION:
+            raise ImageNotFoundException('Could not locate the image.')
+        else:
+            return None
 
 
 def locate(needleImage, haystackImage, **kwargs):
@@ -256,7 +268,10 @@ def locate(needleImage, haystackImage, **kwargs):
     if len(points) > 0:
         return points[0]
     else:
-        raise ImageNotFoundException('Could not locate the image.')
+        if USE_IMAGE_NOT_FOUND_EXCEPTION:
+            raise ImageNotFoundException('Could not locate the image.')
+        else:
+            return None
 
 
 def locateOnScreen(image, minSearchTime=0, **kwargs):
@@ -280,7 +295,10 @@ def locateOnScreen(image, minSearchTime=0, **kwargs):
                 return retVal
         except ImageNotFoundException:
             if time.time() - start > minSearchTime:
-                raise
+                if USE_IMAGE_NOT_FOUND_EXCEPTION:
+                    raise
+                else:
+                    return None
 
 
 def locateAllOnScreen(image, **kwargs):
