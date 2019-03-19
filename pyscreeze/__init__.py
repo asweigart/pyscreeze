@@ -159,7 +159,7 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
         if USE_IMAGE_NOT_FOUND_EXCEPTION:
             raise ImageNotFoundException('Could not locate the image (highest confidence = %.3f)' % result.max())
         else:
-            return None
+            return
 
     # use a generator for API consistency:
     matchx = matches[1] * step + region[0]  # vectorized
@@ -258,7 +258,7 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
         if USE_IMAGE_NOT_FOUND_EXCEPTION:
             raise ImageNotFoundException('Could not locate the image.')
         else:
-            return None
+            return
 
 
 def locate(needleImage, haystackImage, **kwargs):
