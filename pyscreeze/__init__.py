@@ -451,7 +451,9 @@ def pixel(x, y):
         b = color // (256 ** 2)
         return (r, g, b)
     else:
-        return RGB(*screenshot().getpixel((x, y)))
+        # Need to select only the first three values of the color in
+        # case the returned pixel has an alpha channel
+        return RGB(*(screenshot().getpixel((x, y))[:3]))
 
 
 # set the screenshot() function based on the platform running this module
