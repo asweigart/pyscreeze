@@ -24,6 +24,7 @@ try:
     from PIL import ImageOps
 except ImportError:
     pass
+from contextlib import contextmanager
 
 try:
     import cv2, numpy
@@ -68,6 +69,17 @@ except OSError as ex:
 if sys.platform == 'win32':
     from ctypes import windll
 
+    # win32 DC(DeviceContext) Manager
+    @contextmanager
+    def __win32_openDC(hWnd):
+        hDC = windll.user32.GetDC(hWnd)
+        if hDC == 0: #NULL
+            raise WindowsError("windll.user32.GetDC failed : return NULL")
+        try:
+            yield hDC
+        finally:
+            if windll.user32.ReleaseDC(hWnd, hDC) == 0:
+                raise WindowsError("windll.user32.ReleaseDC failed : return 0")
 
 Box = collections.namedtuple('Box', 'left top width height')
 Point = collections.namedtuple('Point', 'x y')
@@ -449,13 +461,14 @@ def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
 def pixel(x, y):
     if sys.platform == 'win32':
         # On Windows, calling GetDC() and GetPixel() is twice as fast as using our screenshot() function.
-        hdc = windll.user32.GetDC(0)
-        color = windll.gdi32.GetPixel(hdc, x, y)
-        # color is in the format 0xbbggrr https://msdn.microsoft.com/en-us/library/windows/desktop/dd183449(v=vs.85).aspx
-        r = color % 256
-        g = (color // 256) % 256
-        b = color // (256 ** 2)
-        return (r, g, b)
+        with __win32_openDC(0) as hdc: # handle will be released automatically
+            color = windll.gdi32.GetPixel(hdc, x, y)
+            if color < 0:
+                raise WindowsError("windll.gdi32.GetPixel faild : return {}".format(color))
+            # color is in the format 0xbbggrr https://msdn.microsoft.com/en-us/library/windows/desktop/dd183449(v=vs.85).aspx
+            bbggrr = "{:0>6x}".format(color) # bbggrr => 'bbggrr' (hex)
+            b, g, r = (int(bbggrr[i:i+2], 16) for i in range(0, 6, 2))
+            return (r, g, b)
     else:
         # Need to select only the first three values of the color in
         # case the returned pixel has an alpha channel
