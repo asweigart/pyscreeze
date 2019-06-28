@@ -1,3 +1,4 @@
+v0.1.22, 2019/06/27 -- Added -z to scrot to silence the beep.
 v0.1.21, 2019/05/17 -- Fix memory leak at pixel(). Fix to pixel function. Fix cropped image saving on Linux and Mac. Fix UnboundLocalError (img_cv won't be assigned) when img is a true-color array.
 v0.1.18, 2018/07/19 -- Fixing MANIFEST.in to include readme, which cause installation failure.
 v0.1.17, 2018/07/18 -- Adjusted setup.py to include the long description.

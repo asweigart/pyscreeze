@@ -10,7 +10,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.21'
+__version__ = '0.1.22'
 
 import collections
 import datetime
@@ -343,6 +343,8 @@ def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen
 
 
 def _screenshot_win32(imageFilename=None, region=None):
+    # TODO - Use the winapi to get a screenshot, and compare performance with ImageGrab.grab()
+    # https://stackoverflow.com/a/3586280/1893164
     try:
         im = ImageGrab.grab()
     except NameError:
@@ -357,6 +359,7 @@ def _screenshot_win32(imageFilename=None, region=None):
 
 
 def _screenshot_osx(imageFilename=None, region=None):
+    # TODO - use tmp name for this file.
     if imageFilename is None:
         tmpFilename = 'screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
@@ -387,7 +390,7 @@ def _screenshot_linux(imageFilename=None, region=None):
     else:
         tmpFilename = imageFilename
     if scrotExists:
-        subprocess.call(['scrot', tmpFilename])
+        subprocess.call(['scrot', '-z', tmpFilename])
         im = Image.open(tmpFilename)
 
         if region is not None:
