@@ -19,6 +19,7 @@ import subprocess
 import sys
 import time
 import errno
+import warnings
 try:
     from PIL import Image
     from PIL import ImageOps
@@ -31,6 +32,7 @@ try:
     useOpenCV = True
     RUNNING_CV_2 = cv2.__version__[0] < '3'
 except ImportError:
+    warnings.warn("OpenCV module not loaded. For better performance on the Locate functions, install opencv-python")
     useOpenCV = False
 
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
