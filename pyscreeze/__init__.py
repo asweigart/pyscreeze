@@ -57,6 +57,7 @@ try:
         whichProc = subprocess.Popen(
             ['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         scrotExists = whichProc.wait() == 0
+        whichProc.communicate()
 except OSError as ex:
     if ex.errno == errno.ENOENT:
         # if there is no "which" program to find scrot, then assume there
