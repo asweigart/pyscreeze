@@ -151,11 +151,15 @@ class TestGeneral(unittest.TestCase):
         self.assertEqual((94, 94, 4, 4), tuple(pyscreeze.locate('slash.png', 'haystack1.png', grayscale=True)))
         self.assertEqual((93, 93, 4, 4), tuple(pyscreeze.locate('slash.png', 'haystack2.png', grayscale=True)))
 
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = True
         with self.assertRaises(pyscreeze.ImageNotFoundException):
             pyscreeze.locate('slash.png', 'colornoise.png')
         with self.assertRaises(pyscreeze.ImageNotFoundException):
             pyscreeze.locate('slash.png', 'colornoise.png', grayscale=True)
 
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
+        self.assertEqual(pyscreeze.locate('slash.png', 'colornoise.png'), None)
+        self.assertEqual(pyscreeze.locate('slash.png', 'colornoise.png', grayscale=True), None)
 
     def test_locate_im(self):
         slashFp = open('slash.png' ,'rb')
@@ -173,10 +177,15 @@ class TestGeneral(unittest.TestCase):
         self.assertEqual((94, 94, 4, 4), tuple(pyscreeze.locate(slashIm, haystack1Im, grayscale=True)))
         self.assertEqual((93, 93, 4, 4), tuple(pyscreeze.locate(slashIm, haystack2Im, grayscale=True)))
 
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = True
         with self.assertRaises(pyscreeze.ImageNotFoundException):
             pyscreeze.locate(slashIm, colorNoiseIm)
         with self.assertRaises(pyscreeze.ImageNotFoundException):
             pyscreeze.locate(slashIm, colorNoiseIm, grayscale=True)
+
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
+        self.assertEqual(pyscreeze.locate(slashIm, colorNoiseIm), None)
+        self.assertEqual(pyscreeze.locate(slashIm, colorNoiseIm, grayscale=True), None)
 
         slashFp.close()
         haystack1Fp.close()
@@ -223,8 +232,12 @@ class TestGeneral(unittest.TestCase):
         slashFp = open('slash.png' ,'rb')
         slashIm = Image.open(slashFp)
 
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = True
         with self.assertRaises(pyscreeze.ImageNotFoundException):
             pyscreeze.locate(slashIm, colorNoiseIm)
+
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
+        self.assertEqual(pyscreeze.locate(slashIm, colorNoiseIm), None)
 
         colorNoiseFp.close()
         slashFp.close()
