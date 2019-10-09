@@ -1,16 +1,14 @@
 # PyScreeze
-# by Al Sweigart
-# https://github.com/asweigart/pyscreeze
-# BSD license
 
 """
-So, apparently Pillow support on Ubuntu 64-bit has several additional steps since it doesn't have JPEG/PNG support out of the box. Description here:
+NOTE:
+Apparently Pillow support on Ubuntu 64-bit has several additional steps since it doesn't have JPEG/PNG support out of the box. Description here:
 
 https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-png-support
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.22'
+__version__ = '0.1.24'
 
 import collections
 import datetime
@@ -23,7 +21,7 @@ try:
     from PIL import Image
     from PIL import ImageOps
 except ImportError:
-    pass
+    pass # TODO - This is not good. Update this. Why am I just ignoring this?
 from contextlib import contextmanager
 
 try:
@@ -41,6 +39,18 @@ if useOpenCV:
     else:
         LOAD_COLOR = cv2.IMREAD_COLOR
         LOAD_GRAYSCALE = cv2.IMREAD_GRAYSCALE
+
+
+import sys
+if sys.platform ==  'win32':
+    # On Windows, the monitor scaling can be set to something besides normal 100%.
+    # PyScreeze and Pillow needs to account for this to make accurate screenshots.
+    # TODO - How does macOS and Linux handle monitor scaling?
+    import ctypes
+    try:
+       ctypes.windll.user32.SetProcessDPIAware()
+    except AttributeError:
+        pass # Windows XP doesn't support monitor scaling, so just do nothing.
 
 
 GRAYSCALE_DEFAULT = False
@@ -488,7 +498,7 @@ elif sys.platform == 'win32':
     try:
         from PIL import ImageGrab
     except ImportError:
-        pass
+        pass # TODO This is bad. Why do I just ignore this?
 else:
     screenshot = _screenshot_linux
 
