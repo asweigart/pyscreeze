@@ -12,6 +12,7 @@ __version__ = '0.1.24'
 
 import collections
 import datetime
+import functools
 import os
 import subprocess
 import sys
@@ -20,8 +21,21 @@ import errno
 try:
     from PIL import Image
     from PIL import ImageOps
+    from PIL import ImageDraw
+    if sys.platform == 'win32': # TODO - Pillow now supports ImageGrab on macOS.
+        from PIL import ImageGrab
+    _PILLOW_UNAVAILABLE = False
 except ImportError:
-    pass # TODO - This is not good. Update this. Why am I just ignoring this?
+    # We ignore this because failures due to Pillow not being installed
+    # should only happen when the functions that specifically depend on
+    # Pillow are called. The main use case is when PyAutoGUI imports
+    # PyScreeze, but Pillow isn't installed because the user is running
+    # some platform/version of Python that Pillow doesn't support, then
+    # importing PyAutoGUI should not automatically fail because it
+    # imports PyScreeze.
+    # So we have a `pass` statement here since a failure to import
+    # Pillow shouldn't crash PyScreeze.
+    _PILLOW_UNAVAILABLE = True
 from contextlib import contextmanager
 
 try:
@@ -41,8 +55,7 @@ if useOpenCV:
         LOAD_GRAYSCALE = cv2.IMREAD_GRAYSCALE
 
 
-import sys
-if sys.platform ==  'win32':
+if sys.platform == 'win32':
     # On Windows, the monitor scaling can be set to something besides normal 100%.
     # PyScreeze and Pillow needs to account for this to make accurate screenshots.
     # TODO - How does macOS and Linux handle monitor scaling?
@@ -82,6 +95,9 @@ if sys.platform == 'win32':
     # win32 DC(DeviceContext) Manager
     @contextmanager
     def __win32_openDC(hWnd):
+        """
+        TODO
+        """
         hDC = windll.user32.GetDC(hWnd)
         if hDC == 0: #NULL
             raise WindowsError("windll.user32.GetDC failed : return NULL")
@@ -95,11 +111,29 @@ Box = collections.namedtuple('Box', 'left top width height')
 Point = collections.namedtuple('Point', 'x y')
 RGB = collections.namedtuple('RGB', 'red green blue')
 
-class ImageNotFoundException(Exception):
-    pass # This is an exception class raised when the locate functions fail.
+class PyScreezeException(Exception):
+    pass # This is a generic exception class raised when a PyScreeze-related error happens.
 
+class ImageNotFoundException(PyScreezeException):
+    pass # This is an exception class raised when the locate functions fail to locate an image.
+
+
+def requiresPillow(wrappedFunction):
+    """
+    A decorator that marks a function as requiring Pillow to be installed.
+    This raises PyScreezeException if Pillow wasn't imported.
+    """
+    @functools.wraps(wrappedFunction)
+    def wrapper(*args, **kwargs):
+        if _PILLOW_UNAVAILABLE:
+            raise PyScreezeException('The Pillow package is required to use this function.')
+        return wrappedFunction(*args, **kwargs)
+    return wrapper
 
 def _load_cv2(img, grayscale=None):
+    """
+    TODO
+    """
     # load images if given filename, or convert as needed to opencv
     # Alpha layer just causes failures at this point, so flatten to RGB.
     # RGBA: load with -1 * cv2.CV_LOAD_IMAGE_COLOR to preserve alpha
@@ -140,7 +174,9 @@ def _load_cv2(img, grayscale=None):
 
 def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, region=None, step=1,
                       confidence=0.999):
-    """ faster but more memory-intensive than pure python
+    """
+    TODO - rewrite this
+        faster but more memory-intensive than pure python
         step 2 skips every other row and column = ~3x faster but prone to miss;
             to compensate, the algorithm automatically reduces the confidence
             threshold by 5% (which helps but will not avoid all misses).
@@ -192,7 +228,12 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
         yield Box(x, y, needleWidth, needleHeight)
 
 
+# TODO - We should consider renaming _locateAll_python to _locateAll_pillow, since Pillow is the real dependency.
+@requiresPillow
 def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
+    """
+    TODO
+    """
     # setup all the arguments
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
@@ -286,6 +327,9 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
 
 
 def locate(needleImage, haystackImage, **kwargs):
+    """
+    TODO
+    """
     # Note: The gymnastics in this function is because we want to make sure to exhaust the iterator so that the needle and haystack files are closed in locateAll.
     kwargs['limit'] = 1
     points = tuple(locateAll(needleImage, haystackImage, **kwargs))
@@ -299,7 +343,8 @@ def locate(needleImage, haystackImage, **kwargs):
 
 
 def locateOnScreen(image, minSearchTime=0, **kwargs):
-    """minSearchTime - amount of time in seconds to repeat taking
+    """TODO - rewrite this
+    minSearchTime - amount of time in seconds to repeat taking
     screenshots and trying to locate a match.  The default of 0 performs
     a single search.
     """
@@ -326,6 +371,9 @@ def locateOnScreen(image, minSearchTime=0, **kwargs):
 
 
 def locateAllOnScreen(image, **kwargs):
+    """
+    TODO
+    """
     screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
     retVal = locateAll(image, screenshotIm, **kwargs)
     try:
@@ -339,12 +387,19 @@ def locateAllOnScreen(image, **kwargs):
 
 
 def locateCenterOnScreen(image, **kwargs):
+    """
+    TODO
+    """
     coords = locateOnScreen(image, **kwargs)
     return center(coords)
 
 
+@requiresPillow
 def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen.png'):
-    from PIL import ImageDraw # this is the only function that needs this, and it's rarely called
+    """
+    TODO
+    """
+    # TODO - This function is useful! Document it!
     screenshotIm = screenshot()
     draw = ImageDraw.Draw(screenshotIm)
     region = (region[0], region[1], region[2] + region[0], region[3] + region[1]) # convert from (left, top, right, bottom) to (left, top, width, height)
@@ -352,13 +407,14 @@ def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen
     screenshotIm.save(filename)
 
 
+@requiresPillow
 def _screenshot_win32(imageFilename=None, region=None):
+    """
+    TODO
+    """
     # TODO - Use the winapi to get a screenshot, and compare performance with ImageGrab.grab()
     # https://stackoverflow.com/a/3586280/1893164
-    try:
-        im = ImageGrab.grab()
-    except NameError:
-        raise ImportError('Pillow module must be installed to use screenshot functions on Windows.')
+    im = ImageGrab.grab()
     if region is not None:
         assert len(region) == 4, 'region argument must be a tuple of four ints'
         region = [int(x) for x in region]
@@ -369,6 +425,9 @@ def _screenshot_win32(imageFilename=None, region=None):
 
 
 def _screenshot_osx(imageFilename=None, region=None):
+    """
+    TODO
+    """
     # TODO - use tmp name for this file.
     if imageFilename is None:
         tmpFilename = 'screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
@@ -393,6 +452,9 @@ def _screenshot_osx(imageFilename=None, region=None):
 
 
 def _screenshot_linux(imageFilename=None, region=None):
+    """
+    TODO
+    """
     if not scrotExists:
         raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
     if imageFilename is None:
@@ -422,6 +484,9 @@ def _screenshot_linux(imageFilename=None, region=None):
 
 
 def _kmp(needle, haystack, _dummy): # Knuth-Morris-Pratt search algorithm implementation (to be used by screen capture)
+    """
+    TODO
+    """
     # build table of shift amounts
     shifts = [1] * (len(needle) + 1)
     shift = 1
@@ -444,6 +509,9 @@ def _kmp(needle, haystack, _dummy): # Knuth-Morris-Pratt search algorithm implem
 
 
 def _steppingFind(needle, haystack, step):
+    """
+    TODO
+    """
     for startPos in range(0, len(haystack) - len(needle) + 1):
         foundMatch = True
         for pos in range(0, len(needle), step):
@@ -455,10 +523,16 @@ def _steppingFind(needle, haystack, step):
 
 
 def center(coords):
+    """
+    TODO
+    """
     return Point(coords[0] + int(coords[2] / 2), coords[1] + int(coords[3] / 2))
 
 
 def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
+    """
+    TODO
+    """
     pix = pixel(x, y)
     if len(pix) == 3 or len(expectedRGBColor) == 3: #RGB mode
         r, g, b = pix[:3]
@@ -472,6 +546,9 @@ def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
         assert False, 'Color mode was expected to be length 3 (RGB) or 4 (RGBA), but pixel is length %s and expectedRGBColor is length %s' % (len(pix), len(expectedRGBColor))
 
 def pixel(x, y):
+    """
+    TODO
+    """
     if sys.platform == 'win32':
         # On Windows, calling GetDC() and GetPixel() is twice as fast as using our screenshot() function.
         with __win32_openDC(0) as hdc: # handle will be released automatically
@@ -495,11 +572,7 @@ elif sys.platform == 'darwin':
     screenshot = _screenshot_osx
 elif sys.platform == 'win32':
     screenshot = _screenshot_win32
-    try:
-        from PIL import ImageGrab
-    except ImportError:
-        pass # TODO This is bad. Why do I just ignore this?
-else:
+else: # TODO - Make this more specific. "Anything else" does not necessarily mean "Linux".
     screenshot = _screenshot_linux
 
 grab = screenshot # for compatibility with Pillow/PIL's ImageGrab module.

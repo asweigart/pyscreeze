@@ -1,18 +1,19 @@
 import unittest
 import sys
 import os
-
-try:
-    from PIL import Image
-except ImportError:
-    pass
-sys.path.insert(0, os.path.abspath('..'))
 import pyscreeze
 
-runningOnPython2 = sys.version_info[0] == 2
+from PIL import Image
 
-
+RUNNING_ON_PYTHON_2 = sys.version_info[0] == 2
 TEMP_FILENAME = '_delete_me.png'
+
+# Delete PIL.py, which is made by test_pillow_unavailable.py, just in case it
+# was left over from some incomplete run of that test.
+try:
+    os.unlink('PIL.py')
+except Exception():
+    pass
 
 
 # Helper functions to get current screen resolution on Windows, Mac OS X, or Linux.
@@ -50,7 +51,7 @@ def isPng(filename):
     fp = open(filename, 'rb')
     fileMagicNumbers = fp.read(len(pngMagicNumbers))
     fp.close()
-    if runningOnPython2:
+    if RUNNING_ON_PYTHON_2:
         return fileMagicNumbers == bytearray(pngMagicNumbers)
     else:
         return fileMagicNumbers == bytes(pngMagicNumbers)
@@ -62,7 +63,7 @@ def isJpg(filename):
     fp = open(filename, 'rb')
     fileMagicNumbers = fp.read(len(jpgMagicNumbers))
     fp.close()
-    if runningOnPython2:
+    if RUNNING_ON_PYTHON_2:
         return fileMagicNumbers == bytearray(jpgMagicNumbers)
     else:
         return fileMagicNumbers == bytes(jpgMagicNumbers)
