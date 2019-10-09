@@ -3,7 +3,15 @@ import sys
 import os
 import pyscreeze
 
-from PIL import Image
+try:
+    from PIL import Image
+except:
+    # TODO - is there a graceful way around this problem?
+    raise Exception("Pillow is not installed. While PyScreeze doesn't require Pillow, the PyScreeze unit tests do.")
+
+# Change the cwd to this file's folder, because that's where the test image files are located.
+scriptFolder = os.path.dirname(os.path.realpath(__file__))
+os.chdir(scriptFolder)
 
 RUNNING_ON_PYTHON_2 = sys.version_info[0] == 2
 TEMP_FILENAME = '_delete_me.png'
@@ -12,7 +20,7 @@ TEMP_FILENAME = '_delete_me.png'
 # was left over from some incomplete run of that test.
 try:
     os.unlink('PIL.py')
-except Exception():
+except Exception:
     pass
 
 
@@ -97,24 +105,6 @@ class TestMagicNumbers(unittest.TestCase):
         self.assertFalse(isJpg(__file__))
 
 class TestGeneral(unittest.TestCase):
-    def test_pillowNotPresent(self):
-        # Testing that we can still import pyscreeze
-        # even if pillow is not present
-
-        # Setting module's dictionary entry to None will raise
-        # ImportError while deleting the entry will make the interpreter
-        # continue searching for module
-        sys.modules["PIL"] = None
-
-        if sys.version_info[0] == 2:
-            reload(pyscreeze)
-        elif sys.version_info[:2] <= (3, 3):
-            import imp
-            imp.reload(pyscreeze)
-        else:
-            import importlib
-            importlib.reload(pyscreeze)
-
     def test_namesDefined(self):
         pyscreeze.locateAll
         pyscreeze.locate

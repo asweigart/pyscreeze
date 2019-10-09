@@ -18,6 +18,9 @@ import subprocess
 import sys
 import time
 import errno
+
+from contextlib import contextmanager
+
 try:
     from PIL import Image
     from PIL import ImageOps
@@ -36,7 +39,7 @@ except ImportError:
     # So we have a `pass` statement here since a failure to import
     # Pillow shouldn't crash PyScreeze.
     _PILLOW_UNAVAILABLE = True
-from contextlib import contextmanager
+
 
 try:
     import cv2, numpy
