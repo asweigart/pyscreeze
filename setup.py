@@ -27,7 +27,7 @@ setup(
     packages=['pyscreeze'],
     test_suite='tests',
     install_requires=['Pillow'],
-    requires_python='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*', # Copied from the Pillow library, since PyScreeze is built on top of it.
+    requires_python='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*', # Copied from the Pillow library (October 2019), since PyScreeze is built on top of it.
     keywords="screenshot screen screencap capture scrot screencapture image",
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -38,7 +38,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-         # Copied from the Pillow library, since PyScreeze is built on top of it:
+         # Copied from the Pillow library (October 2019), since PyScreeze is built on top of it:
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
