@@ -1,14 +1,19 @@
+import io
+import os
 import re
 from setuptools import setup
 
-# Load version from module (without loading the whole module)
-with open('pyscreeze/__init__.py', 'r') as fd:
-    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-                        fd.read(), re.MULTILINE).group(1)
+scriptFolder = os.path.dirname(os.path.realpath(__file__))
+os.chdir(scriptFolder)
 
-# Read in the README.md for the long description.
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+# Load version from module (without loading the whole module)
+with open('pyscreeze/__init__.py', 'r') as fileObj:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+                        fileObj.read(), re.MULTILINE).group(1)
+
+# Use the README.md content for the long description:
+with io.open('README.md', encoding='utf-8') as fileObj:
+    long_description = fileObj.read()
 
 setup(
     name='PyScreeze',
@@ -18,7 +23,7 @@ setup(
     author_email='al@inventwithpython.com',
     description='A simple, cross-platform screenshot module for Python 2 and 3.',
     long_description=long_description,
-    license='BSD',
+    license='MIT',
     packages=['pyscreeze'],
     test_suite='tests',
     install_requires=['Pillow'],
