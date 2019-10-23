@@ -120,7 +120,7 @@ class TestGeneral(unittest.TestCase):
     def test_screenshot(self):
         im = pyscreeze.screenshot(TEMP_FILENAME)
         self.assertTrue(isPng(TEMP_FILENAME))
-        self.assertEqual(im.size, resolution())
+        self.assertEqual(im.size, resolution()) # TODO shouldn't this fail on Windows for multi-monitor setups?
         os.unlink(TEMP_FILENAME)
 
 
@@ -268,6 +268,16 @@ class TestGeneral(unittest.TestCase):
         colorNoiseFp.close()
         """
 
+class TestStressTest(unittest.TestCase):
+    def test_1000screenshots(self):
+        # This test takes about two minutes for 200 screenshots.
+        # On Windows, if I change PyScreeze away from Pillow and make win32 api calls directly but forget to release
+        # the DCs (display contexts), the program would fail after about 90 or screenshots.
+        # https://stackoverflow.com/questions/3586046/fastest-way-to-take-a-screenshot-with-python-on-windows
+        for i in range(200):
+            pyscreeze.screenshot(TEMP_FILENAME)
+            self.assertTrue(isPng(TEMP_FILENAME))
+            os.unlink(TEMP_FILENAME)
 
 if __name__ == '__main__':
     unittest.main()
