@@ -8,7 +8,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.24'
+__version__ = '0.1.25'
 
 import collections
 import datetime
@@ -377,6 +377,8 @@ def locateAllOnScreen(image, **kwargs):
     """
     TODO
     """
+
+    # TODO - Should this raise an exception if zero instances of the image can be found on the screen, instead of always returning a generator?
     screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
     retVal = locateAll(image, screenshotIm, **kwargs)
     try:
@@ -394,7 +396,10 @@ def locateCenterOnScreen(image, **kwargs):
     TODO
     """
     coords = locateOnScreen(image, **kwargs)
-    return center(coords)
+    if coords is None:
+        return None
+    else:
+        return center(coords)
 
 
 @requiresPillow
@@ -527,8 +532,21 @@ def _steppingFind(needle, haystack, step):
 
 def center(coords):
     """
-    TODO
+    Returns a `Point` object with the x and y set to an integer determined by the format of `coords`.
+
+    The `coords` argument is a 4-integer tuple of (left, top, width, height).
+
+    For example:
+
+    >>> center((10, 10, 6, 8))
+    Point(x=13, y=14)
+    >>> center((10, 10, 7, 9))
+    Point(x=13, y=14)
+    >>> center((10, 10, 8, 10))
+    Point(x=14, y=15)
     """
+
+    # TODO - one day, add code to handle a Box namedtuple.
     return Point(coords[0] + int(coords[2] / 2), coords[1] + int(coords[3] / 2))
 
 
@@ -581,6 +599,7 @@ else: # TODO - Make this more specific. "Anything else" does not necessarily mea
 grab = screenshot # for compatibility with Pillow/PIL's ImageGrab module.
 
 # set the locateAll function to use opencv if possible; python 3 needs opencv 3.0+
+# TODO - Should this raise an exception if zero instances of the image can be found on the screen, instead of always returning a generator?
 if useOpenCV:
     locateAll = _locateAll_opencv
     if not RUNNING_PYTHON_2 and cv2.__version__ < '3':
