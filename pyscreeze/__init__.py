@@ -331,7 +331,10 @@ def locateAllOnScreen(image, **kwargs):
 
 def locateCenterOnScreen(image, **kwargs):
     coords = locateOnScreen(image, **kwargs)
-    return center(coords)
+    if coords is not None:
+        return center(coords)
+    elif USE_IMAGE_NOT_FOUND_EXCEPTION:
+        raise ImageNotFoundException('Could not locate the image.')
 
 
 def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen.png'):
