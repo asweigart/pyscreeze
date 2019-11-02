@@ -1,18 +1,27 @@
 import unittest
 import sys
 import os
+import pyscreeze
 
 try:
     from PIL import Image
-except ImportError:
-    pass
-sys.path.insert(0, os.path.abspath('..'))
-import pyscreeze
+except:
+    # TODO - is there a graceful way around this problem?
+    raise Exception("Pillow is not installed. While PyScreeze doesn't require Pillow, the PyScreeze unit tests do.")
 
-runningOnPython2 = sys.version_info[0] == 2
+# Change the cwd to this file's folder, because that's where the test image files are located.
+scriptFolder = os.path.dirname(os.path.realpath(__file__))
+os.chdir(scriptFolder)
 
-
+RUNNING_ON_PYTHON_2 = sys.version_info[0] == 2
 TEMP_FILENAME = '_delete_me.png'
+
+# Delete PIL.py, which is made by test_pillow_unavailable.py, just in case it
+# was left over from some incomplete run of that test.
+try:
+    os.unlink('PIL.py')
+except Exception:
+    pass
 
 
 # Helper functions to get current screen resolution on Windows, Mac OS X, or Linux.
@@ -50,7 +59,7 @@ def isPng(filename):
     fp = open(filename, 'rb')
     fileMagicNumbers = fp.read(len(pngMagicNumbers))
     fp.close()
-    if runningOnPython2:
+    if RUNNING_ON_PYTHON_2:
         return fileMagicNumbers == bytearray(pngMagicNumbers)
     else:
         return fileMagicNumbers == bytes(pngMagicNumbers)
@@ -62,7 +71,7 @@ def isJpg(filename):
     fp = open(filename, 'rb')
     fileMagicNumbers = fp.read(len(jpgMagicNumbers))
     fp.close()
-    if runningOnPython2:
+    if RUNNING_ON_PYTHON_2:
         return fileMagicNumbers == bytearray(jpgMagicNumbers)
     else:
         return fileMagicNumbers == bytes(jpgMagicNumbers)
@@ -96,24 +105,6 @@ class TestMagicNumbers(unittest.TestCase):
         self.assertFalse(isJpg(__file__))
 
 class TestGeneral(unittest.TestCase):
-    def test_pillowNotPresent(self):
-        # Testing that we can still import pyscreeze
-        # even if pillow is not present
-
-        # Setting module's dictionary entry to None will raise
-        # ImportError while deleting the entry will make the interpreter
-        # continue searching for module
-        sys.modules["PIL"] = None
-
-        if sys.version_info[0] == 2:
-            reload(pyscreeze)
-        elif sys.version_info[:2] <= (3, 3):
-            import imp
-            imp.reload(pyscreeze)
-        else:
-            import importlib
-            importlib.reload(pyscreeze)
-
     def test_namesDefined(self):
         pyscreeze.locateAll
         pyscreeze.locate
@@ -129,7 +120,7 @@ class TestGeneral(unittest.TestCase):
     def test_screenshot(self):
         im = pyscreeze.screenshot(TEMP_FILENAME)
         self.assertTrue(isPng(TEMP_FILENAME))
-        self.assertEqual(im.size, resolution())
+        self.assertEqual(im.size, resolution()) # TODO shouldn't this fail on Windows for multi-monitor setups?
         os.unlink(TEMP_FILENAME)
 
 
@@ -151,11 +142,15 @@ class TestGeneral(unittest.TestCase):
         self.assertEqual((94, 94, 4, 4), tuple(pyscreeze.locate('slash.png', 'haystack1.png', grayscale=True)))
         self.assertEqual((93, 93, 4, 4), tuple(pyscreeze.locate('slash.png', 'haystack2.png', grayscale=True)))
 
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = True
         with self.assertRaises(pyscreeze.ImageNotFoundException):
             pyscreeze.locate('slash.png', 'colornoise.png')
         with self.assertRaises(pyscreeze.ImageNotFoundException):
             pyscreeze.locate('slash.png', 'colornoise.png', grayscale=True)
 
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
+        self.assertEqual(pyscreeze.locate('slash.png', 'colornoise.png'), None)
+        self.assertEqual(pyscreeze.locate('slash.png', 'colornoise.png', grayscale=True), None)
 
     def test_locate_im(self):
         slashFp = open('slash.png' ,'rb')
@@ -173,10 +168,15 @@ class TestGeneral(unittest.TestCase):
         self.assertEqual((94, 94, 4, 4), tuple(pyscreeze.locate(slashIm, haystack1Im, grayscale=True)))
         self.assertEqual((93, 93, 4, 4), tuple(pyscreeze.locate(slashIm, haystack2Im, grayscale=True)))
 
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = True
         with self.assertRaises(pyscreeze.ImageNotFoundException):
             pyscreeze.locate(slashIm, colorNoiseIm)
         with self.assertRaises(pyscreeze.ImageNotFoundException):
             pyscreeze.locate(slashIm, colorNoiseIm, grayscale=True)
+
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
+        self.assertEqual(pyscreeze.locate(slashIm, colorNoiseIm), None)
+        self.assertEqual(pyscreeze.locate(slashIm, colorNoiseIm, grayscale=True), None)
 
         slashFp.close()
         haystack1Fp.close()
@@ -223,8 +223,12 @@ class TestGeneral(unittest.TestCase):
         slashFp = open('slash.png' ,'rb')
         slashIm = Image.open(slashFp)
 
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = True
         with self.assertRaises(pyscreeze.ImageNotFoundException):
             pyscreeze.locate(slashIm, colorNoiseIm)
+
+        pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
+        self.assertEqual(pyscreeze.locate(slashIm, colorNoiseIm), None)
 
         colorNoiseFp.close()
         slashFp.close()
@@ -264,6 +268,16 @@ class TestGeneral(unittest.TestCase):
         colorNoiseFp.close()
         """
 
+class TestStressTest(unittest.TestCase):
+    def test_1000screenshots(self):
+        # This test takes about two minutes for 200 screenshots.
+        # On Windows, if I change PyScreeze away from Pillow and make win32 api calls directly but forget to release
+        # the DCs (display contexts), the program would fail after about 90 or screenshots.
+        # https://stackoverflow.com/questions/3586046/fastest-way-to-take-a-screenshot-with-python-on-windows
+        for i in range(200):
+            pyscreeze.screenshot(TEMP_FILENAME)
+            self.assertTrue(isPng(TEMP_FILENAME))
+            os.unlink(TEMP_FILENAME)
 
 if __name__ == '__main__':
     unittest.main()
