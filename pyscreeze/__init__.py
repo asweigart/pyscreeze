@@ -144,7 +144,7 @@ def _load_cv2(img, grayscale=None):
 
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    if isinstance(img, str):
+    if isinstance(img, str) or isinstance(img, unicode):
         # The function imread loads an image from the specified file and
         # returns it. If the image cannot be read (because of missing
         # file, improper permissions, unsupported or invalid format),
@@ -193,6 +193,7 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
     confidence = float(confidence)
 
     needleImage = _load_cv2(needleImage, grayscale)
+    global needleHeight, needleWidth
     needleHeight, needleWidth = needleImage.shape[:2]
     haystackImage = _load_cv2(haystackImage, grayscale)
 
@@ -201,6 +202,8 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
                                       region[0]:region[0]+region[2]]
     else:
         region = (0, 0)  # full image; these values used in the yield statement
+    global globalRegion
+    globalRegion = region
     if (haystackImage.shape[0] < needleImage.shape[0] or
         haystackImage.shape[1] < needleImage.shape[1]):
         # avoid semi-cryptic OpenCV error below if bad size
@@ -212,9 +215,13 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
         haystackImage = haystackImage[::step, ::step]
     else:
         step = 1
+    global globalStep
+    globalStep = step
 
     # get all matches at once, credit: https://stackoverflow.com/questions/7670112/finding-a-subimage-inside-a-numpy-image/9253805#9253805
+    global result
     result = cv2.matchTemplate(haystackImage, needleImage, cv2.TM_CCOEFF_NORMED)
+    #result = cv2.matchTemplate(haystackImage, needleImage, cv2.TM_SQDIFF_NORMED)
     match_indices = numpy.arange(result.size)[(result > confidence).flatten()]
     matches = numpy.unravel_index(match_indices[:limit], result.shape)
 
@@ -242,13 +249,13 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
         grayscale = GRAYSCALE_DEFAULT
 
     needleFileObj = None
-    if isinstance(needleImage, str):
+    if isinstance(needleImage, str) or isinstance(needleImage, unicode):
         # 'image' is a filename, load the Image object
         needleFileObj = open(needleImage, 'rb')
         needleImage = Image.open(needleFileObj)
 
     haystackFileObj = None
-    if isinstance(haystackImage, str):
+    if isinstance(haystackImage, str) or isinstance(haystackImage, unicode):
         # 'image' is a filename, load the Image object
         haystackFileObj = open(haystackImage, 'rb')
         haystackImage = Image.open(haystackFileObj)
@@ -337,7 +344,13 @@ def locate(needleImage, haystackImage, **kwargs):
     kwargs['limit'] = 1
     points = tuple(locateAll(needleImage, haystackImage, **kwargs))
     if len(points) > 0:
-        return points[0]
+        if useOpenCV:
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+            x = max_loc[0] * globalStep + globalRegion[0]
+            y = max_loc[1] * globalStep + globalRegion[1]
+            return (x, y, needleWidth, needleHeight)
+        else:
+            return points[0]
     else:
         if USE_IMAGE_NOT_FOUND_EXCEPTION:
             raise ImageNotFoundException('Could not locate the image.')
