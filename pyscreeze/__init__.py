@@ -495,10 +495,11 @@ def _kmp(needle, haystack, _dummy): # Knuth-Morris-Pratt search algorithm implem
     """
     TODO
     """
+    needleLen = len(needle)
     # build table of shift amounts
-    shifts = [1] * (len(needle) + 1)
+    shifts = [1] * (needleLen + 1)
     shift = 1
-    for pos in range(len(needle)):
+    for pos in range(needleLen):
         while shift <= pos and needle[pos] != needle[pos-shift]:
             shift += shifts[pos-shift]
         shifts[pos+1] = shift
@@ -507,12 +508,12 @@ def _kmp(needle, haystack, _dummy): # Knuth-Morris-Pratt search algorithm implem
     startPos = 0
     matchLen = 0
     for c in haystack:
-        while matchLen == len(needle) or \
+        while matchLen == needleLen or \
               matchLen >= 0 and needle[matchLen] != c:
             startPos += shifts[matchLen]
             matchLen -= shifts[matchLen]
         matchLen += 1
-        if matchLen == len(needle):
+        if matchLen == needleLen:
             yield startPos
 
 
