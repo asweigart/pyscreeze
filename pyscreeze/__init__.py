@@ -57,6 +57,8 @@ if useOpenCV:
         LOAD_COLOR = cv2.IMREAD_COLOR
         LOAD_GRAYSCALE = cv2.IMREAD_GRAYSCALE
 
+if not RUNNING_PYTHON_2:
+    unicode = str # On Python 3, all the isinstance(spam, (str, unicode)) calls will work the same as Python 2.
 
 if sys.platform == 'win32':
     # On Windows, the monitor scaling can be set to something besides normal 100%.
@@ -144,7 +146,7 @@ def _load_cv2(img, grayscale=None):
 
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    if isinstance(img, str):
+    if isinstance(img, (str, unicode)):
         # The function imread loads an image from the specified file and
         # returns it. If the image cannot be read (because of missing
         # file, improper permissions, unsupported or invalid format),
@@ -242,13 +244,13 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
         grayscale = GRAYSCALE_DEFAULT
 
     needleFileObj = None
-    if isinstance(needleImage, str):
+    if isinstance(needleImage, (str, unicode)):
         # 'image' is a filename, load the Image object
         needleFileObj = open(needleImage, 'rb')
         needleImage = Image.open(needleFileObj)
 
     haystackFileObj = None
-    if isinstance(haystackImage, str):
+    if isinstance(haystackImage, (str, unicode)):
         # 'image' is a filename, load the Image object
         haystackFileObj = open(haystackImage, 'rb')
         haystackImage = Image.open(haystackFileObj)
