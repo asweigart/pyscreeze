@@ -80,18 +80,9 @@ GRAYSCALE_DEFAULT = False
 USE_IMAGE_NOT_FOUND_EXCEPTION = False
 
 scrotExists = False
-try:
-    if sys.platform not in ('java', 'darwin', 'win32'):
-        whichProc = subprocess.Popen(
-            ['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        scrotExists = whichProc.wait() == 0
-except OSError as ex:
-    if ex.errno == errno.ENOENT:
-        # if there is no "which" program to find scrot, then assume there
-        # is no scrot.
-        pass
-    else:
-        raise
+if sys.platform not in ('java', 'darwin', 'win32'):
+    if os.popen('command -v scrot').read():
+        scrotExists = True
 
 
 if sys.platform == 'win32':
