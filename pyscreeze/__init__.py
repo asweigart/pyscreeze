@@ -79,10 +79,12 @@ GRAYSCALE_DEFAULT = False
 # folks who would rather have it raise an exception.
 USE_IMAGE_NOT_FOUND_EXCEPTION = False
 
+"""
 scrotExists = False
 if sys.platform not in ('java', 'darwin', 'win32'):
     if os.popen('command -v scrot').read():
         scrotExists = True
+"""
 
 
 if sys.platform == 'win32':
@@ -452,36 +454,49 @@ def _screenshot_osx(imageFilename=None, region=None):
     return im
 
 
+from mss import mss
+
 def _screenshot_linux(imageFilename=None, region=None):
     """
     TODO
     """
-    if not scrotExists:
-        raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
-    if imageFilename is None:
-        tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
-    else:
-        tmpFilename = imageFilename
-    if scrotExists:
-        subprocess.call(['scrot', '-z', tmpFilename])
-        im = Image.open(tmpFilename)
+    #if not scrotExists:
+    #    raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
+    #if imageFilename is None:
+    #    tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
+    #else:
+    #    tmpFilename = imageFilename
+    #if scrotExists:
+    #    subprocess.call(['scrot', '-z', tmpFilename])
+    #    im = Image.open(tmpFilename)
+    #
+    #    if region is not None:
+    #        assert len(region) == 4, 'region argument must be a tuple of four ints'
+    #        region = [int(x) for x in region]
+    #        im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+    #        os.unlink(tmpFilename) # delete image of entire screen to save cropped version
+    #        im.save(tmpFilename)
+    #    else:
+    #        # force loading before unlinking, Image.open() is lazy
+    #        im.load()
+    #
+    #    if imageFilename is None:
+    #        os.unlink(tmpFilename)
+    #    return im
+    #else:
+    #    raise Exception('The scrot program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot')
 
-        if region is not None:
-            assert len(region) == 4, 'region argument must be a tuple of four ints'
-            region = [int(x) for x in region]
-            im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-            os.unlink(tmpFilename) # delete image of entire screen to save cropped version
-            im.save(tmpFilename)
+    with mss() as sct:
+        if region:
+            top, left, width, height = region
+            monitor = {'top': top, 'left': left, 'width': width, 'height': height}
+            sct_img = sct.grab(monitor)
         else:
-            # force loading before unlinking, Image.open() is lazy
-            im.load()
-
-        if imageFilename is None:
-            os.unlink(tmpFilename)
-        return im
-    else:
-        raise Exception('The scrot program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot')
-
+            sct_img = sct.grab(sct.monitors[0])
+        img = Image.frombytes('RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX')
+        if imageFilename:
+            img.save(imageFilename)
+        return img
 
 
 def _kmp(needle, haystack, _dummy): # Knuth-Morris-Pratt search algorithm implementation (to be used by screen capture)
