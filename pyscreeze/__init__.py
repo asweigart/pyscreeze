@@ -424,7 +424,7 @@ def _screenshot_win32(imageFilename=None, region=None):
     """
     # TODO - Use the winapi to get a screenshot, and compare performance with ImageGrab.grab()
     # https://stackoverflow.com/a/3586280/1893164
-    im = ImageGrab.grab()
+    im = ImageGrab.grab(all_screens=True)
     if region is not None:
         assert len(region) == 4, 'region argument must be a tuple of four ints'
         region = [int(x) for x in region]
