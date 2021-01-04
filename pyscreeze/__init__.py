@@ -235,10 +235,13 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
 
 # TODO - We should consider renaming _locateAll_python to _locateAll_pillow, since Pillow is the real dependency.
 @requiresPillow
-def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1):
+def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1, confidence=None):
     """
     TODO
     """
+    if confidence is not None:
+        raise TypeError("cv2 is required to use confidence argument")
+
     # setup all the arguments
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
