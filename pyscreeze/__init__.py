@@ -93,6 +93,20 @@ except OSError as ex:
     else:
         raise
 
+maimExists = False
+try:
+    if sys.platform not in ('java', 'darwin', 'win32'):
+        whichProc = subprocess.Popen(
+            ['which', 'maim'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        maimExists = whichProc.wait() == 0
+except OSError as ex:
+    if ex.errno == errno.ENOENT:
+        # if there is no "which" program to find maim, then assume there
+        # is no maim.
+        pass
+    else:
+        raise
+
 
 if sys.platform == 'win32':
     from ctypes import windll
@@ -465,21 +479,25 @@ def _screenshot_linux(imageFilename=None, region=None):
     """
     TODO
     """
-    if not scrotExists:
-        raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
+    if not (scrotExists or maimExists):
+        raise NotImplementedError('"scrot" or "maim" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot ')
     if imageFilename is None:
         tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
         tmpFilename = imageFilename
-    if scrotExists:
-        subprocess.call(['scrot', '-z', tmpFilename])
+    if scrotExists or maimExists:
+        if scrotExists:
+            subprocess.call(['scrot', '-z', tmpFilename])
+        elif maimExists:
+            subprocess.call(['maim', tmpFilename])
+
         im = Image.open(tmpFilename)
 
         if region is not None:
             assert len(region) == 4, 'region argument must be a tuple of four ints'
             region = [int(x) for x in region]
             im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-            os.unlink(tmpFilename) # delete image of entire screen to save cropped version
+            os.unlink(tmpFilename)  # delete image of entire screen to save cropped version
             im.save(tmpFilename)
         else:
             # force loading before unlinking, Image.open() is lazy
@@ -488,8 +506,9 @@ def _screenshot_linux(imageFilename=None, region=None):
         if imageFilename is None:
             os.unlink(tmpFilename)
         return im
+
     else:
-        raise Exception('The scrot program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot')
+        raise Exception('The scrot program or the maim program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot')
 
 
 
