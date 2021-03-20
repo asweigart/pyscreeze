@@ -552,10 +552,16 @@ def center(coords):
     return Point(coords[0] + int(coords[2] / 2), coords[1] + int(coords[3] / 2))
 
 
-def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
+def pixelMatchesColor(x, y=None, expectedRGBColor=None, tolerance=0):
     """
-    TODO
+    Return True if a specific screen pixel matches a given color
+    >>> pixelMatchesColor(0, 0, (255,0,0)) # is the pixel at 0,0 red?
+    False
+    >>> pixelMatchesColor((0, 0), expectedRGBColor=(255,0,0))
+    False
     """
+    if expectedRGBColor is None:
+        raise TypeError("Missing argument: expectedRGBColor")
     pix = pixel(x, y)
     if len(pix) == 3 or len(expectedRGBColor) == 3: #RGB mode
         r, g, b = pix[:3]
@@ -568,10 +574,17 @@ def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
     else:
         assert False, 'Color mode was expected to be length 3 (RGB) or 4 (RGBA), but pixel is length %s and expectedRGBColor is length %s' % (len(pix), len(expectedRGBColor))
 
-def pixel(x, y):
+def pixel(x, y=None):
     """
-    TODO
+    Return the color value of a specific pixel on the screen.
+    Accepts the x, y pixel location as 2 arguments or a 2-tuple
+    >>> pixel(0,0)
+    (0,0,0)
+    >>> pixel((0,0))
+    (0,0,0)
     """
+    if y is None:
+        x, y = x
     if sys.platform == 'win32':
         # On Windows, calling GetDC() and GetPixel() is twice as fast as using our screenshot() function.
         with __win32_openDC(0) as hdc: # handle will be released automatically
