@@ -86,6 +86,8 @@ The "locate all" functions can be used in for loops or passed to `list()`:
     >>> list(pyautogui.locateAllOnScreen('someButton.png'))
     [(1101, 252, 50, 50), (59, 481, 50, 50), (1395, 640, 50, 50), (1838, 676, 50, 50)]
 
+- `locateOnScreen(image, title)` - Returns (left, top, width, height) coordinate of first found instance of the `image` on the window with `title` in its title. Returns None if not found on the screen. This function requires the PyGetWindow module to be installed.
+
 Grayscale Matching
 ------------------
 

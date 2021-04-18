@@ -8,7 +8,7 @@ https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-
 http://ubuntuforums.org/showthread.php?t=1751455
 """
 
-__version__ = '0.1.26'
+__version__ = '0.1.27'
 
 import collections
 import datetime
@@ -69,6 +69,15 @@ if sys.platform == 'win32':
        ctypes.windll.user32.SetProcessDPIAware()
     except AttributeError:
         pass # Windows XP doesn't support monitor scaling, so just do nothing.
+
+    try:
+        import pygetwindow
+    except ImportError:
+        _PYGETWINDOW_UNAVAILABLE = True
+    else:
+        _PYGETWINDOW_UNAVAILABLE = False
+else:
+    _PYGETWINDOW_UNAVAILABLE = True
 
 
 GRAYSCALE_DEFAULT = False
@@ -405,6 +414,23 @@ def locateCenterOnScreen(image, **kwargs):
         return None
     else:
         return center(coords)
+
+def locateOnWindow(image, title, **kwargs):
+    """
+    TODO
+    """
+    if _PYGETWINDOW_UNAVAILABLE:
+        raise PyScreezeException('locateOnWindow() failed because PyGetWindow is not installed or is unsupported on this platform.')
+
+    matchingWindows = pygetwindow.getWindowsWithTitle(title)
+    if len(matchingWindows) == 0:
+        raise PyScreezeException('Could not find a window with %s in the title' % (title))
+    elif len(matchingWindows) > 1:
+        raise PyScreezeException('Found multiple windows with %s in the title: %s' % (title, [str(win) for win in matchingWindows]))
+
+    win = matchingWindows[0]
+    win.activate()
+    return locateOnScreen(image, region=(win.left, win.top, win.width, win.height), **kwargs)
 
 
 @requiresPillow
