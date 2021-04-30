@@ -18,6 +18,7 @@ import subprocess
 import sys
 import time
 import errno
+import io
 
 from contextlib import contextmanager
 
@@ -79,16 +80,16 @@ GRAYSCALE_DEFAULT = False
 # folks who would rather have it raise an exception.
 USE_IMAGE_NOT_FOUND_EXCEPTION = False
 
-scrotExists = False
+maimExists = False
 try:
     if sys.platform not in ('java', 'darwin', 'win32'):
         whichProc = subprocess.Popen(
-            ['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        scrotExists = whichProc.wait() == 0
+            ['which', 'maim'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        maimExists = whichProc.wait() == 0
 except OSError as ex:
     if ex.errno == errno.ENOENT:
-        # if there is no "which" program to find scrot, then assume there
-        # is no scrot.
+        # if there is no "which" program to find maim, then assume there
+        # is no maim.
         pass
     else:
         raise
@@ -465,31 +466,21 @@ def _screenshot_linux(imageFilename=None, region=None):
     """
     TODO
     """
-    if not scrotExists:
-        raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
-    if imageFilename is None:
-        tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
-    else:
-        tmpFilename = imageFilename
-    if scrotExists:
-        subprocess.call(['scrot', '-z', tmpFilename])
-        im = Image.open(tmpFilename)
-
+    if not maimExists:
+        raise NotImplementedError('"maim" must be installed to use screenshot functions in Linux. Run: sudo apt-get install maim')
+    if maimExists:
+        if region is None:
+            maim_stdout = subprocess.Popen(['maim'], stdout=subprocess.PIPE).stdout   
         if region is not None:
             assert len(region) == 4, 'region argument must be a tuple of four ints'
-            region = [int(x) for x in region]
-            im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-            os.unlink(tmpFilename) # delete image of entire screen to save cropped version
-            im.save(tmpFilename)
-        else:
-            # force loading before unlinking, Image.open() is lazy
-            im.load()
-
-        if imageFilename is None:
-            os.unlink(tmpFilename)
+            maim_region = str(region[2]) +"x"+ str(region[3]) + "+" + str(region[0]) + "+" + str(region[1])
+            maim_stdout = subprocess.Popen(['maim','-g',maim_region], stdout=subprocess.PIPE).stdout
+        im = Image.open(io.BytesIO(maim_stdout.read()))
+        if imageFilename is not None:
+            im.save(imageFilename)
         return im
     else:
-        raise Exception('The scrot program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot')
+        raise Exception('The maim program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install maim')
 
 
 
