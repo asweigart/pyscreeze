@@ -8,7 +8,7 @@ About
 
 PyScreeze can take screenshots, save them to files, and locate images within the screen. This is useful if you have a small image of, say, a button that needs to be clicked and want to locate it on the screen.
 
-Screenshot functionality requires the Pillow module. OS X uses the `screencapture` command, which comes with the operating system. Linux uses the `scrot` command, which can be installed by running `sudo apt-get install scrot`.
+Screenshot functionality requires the Pillow module. OS X uses the `screencapture` command, which comes with the operating system. Linux uses the `maim` command, which can be installed by running `sudo apt-get install maim`.
 
 Special Notes About Ubuntu
 ==========================
