@@ -123,3 +123,8 @@ The optional `tolerance` keyword argument specifies how much each of the red, gr
     False
     >>> pyscreeze.pixelMatchesColor(100, 200, (140, 125, 134), tolerance=10)
     True
+
+Support
+-------
+
+If you find this project helpful and would like to support its development, [consider donating to its creator on Patreon](https://www.patreon.com/AlSweigart).
