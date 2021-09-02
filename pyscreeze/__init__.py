@@ -144,7 +144,7 @@ def requiresPillow(wrappedFunction):
         return wrappedFunction(*args, **kwargs)
     return wrapper
 
-def _load_cv2(img, grayscale=None):
+def _load_cv2(img, grayscale=None, alpha=False):
     """
     TODO
     """
@@ -161,7 +161,9 @@ def _load_cv2(img, grayscale=None):
         # file, improper permissions, unsupported or invalid format),
         # the function returns an empty matrix
         # http://docs.opencv.org/3.0-beta/modules/imgcodecs/doc/reading_and_writing_images.html
-        if grayscale:
+        if alpha:
+            img_cv = cv2.imread(img, cv2.IMREAD_UNCHANGED)
+        elif grayscale:
             img_cv = cv2.imread(img, LOAD_GRAYSCALE)
         else:
             img_cv = cv2.imread(img, LOAD_COLOR)
@@ -185,9 +187,28 @@ def _load_cv2(img, grayscale=None):
         raise TypeError('expected an image filename, OpenCV numpy array, or PIL image')
     return img_cv
 
+def _extract_alpha_cv2(img, hardedge = True):
+    """ assigns a solid white/black to a mask based off of the alpha channel, then converts the image to COLOR_BGRA2BGR"""
+
+    # [:,:,3] returns the alpha channel. we could also use  cv2.split(img)[3], but split is a costly operation (in terms of time), 
+    # so only use it if necessary. Numpy indexing is much more efficient and should be used if possible.
+    mask = numpy.array(img[:,:,3])
+    
+    # 
+    if hardedge: 
+        mask[0][ mask[0] <= 128 ] = 0
+        mask[0][ mask[0] >  128 ] = 255
+
+
+    mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+    img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
+    return img, mask
+
+
 
 def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, region=None, step=1,
-                      confidence=0.999):
+                      confidence=0.999, alpha=False, method=cv2.TM_CCOEFF_NORMED):
     """
     TODO - rewrite this
         faster but more memory-intensive than pure python
@@ -196,16 +217,19 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
             threshold by 5% (which helps but will not avoid all misses).
         limitations:
           - OpenCV 3.x & python 3.x not tested
-          - RGBA images are treated as RBG (ignores alpha channel)
+          - RGBA images are treated as RBG (ignores alpha channel unless alpha keyword is used, then needle can use alpha channel)
+          - OpenCV hasn't impelmented alpha transparent matching except on two methods cv2.TM_SQDIFF and cv2.TM_CCORR_NORMED
+            https://stackoverflow.com/questions/35658323/python-opencv-matchtemplate-is-mask-feature-implemented
+           
     """
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
 
     confidence = float(confidence)
 
-    needleImage = _load_cv2(needleImage, grayscale)
+    needleImage = _load_cv2(needleImage, grayscale=grayscale, alpha=alpha)
     needleHeight, needleWidth = needleImage.shape[:2]
-    haystackImage = _load_cv2(haystackImage, grayscale)
+    haystackImage = _load_cv2(haystackImage, grayscale=grayscale)
 
     if region:
         haystackImage = haystackImage[region[1]:region[1]+region[3],
@@ -224,9 +248,22 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
     else:
         step = 1
 
+        
+    if alpha and needleImage.shape[2] > 3:
+        needleImage, transparent_mask = _extract_alpha_cv2(needleImage)
+        result = cv2.matchTemplate(haystackImage, needleImage, method, mask = transparent_mask)
+
+    else:
+        result = cv2.matchTemplate(haystackImage, needleImage, method)
+
+    # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
+    if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
+        match_condition = result < confidence
+    else:
+        match_condition = result > confidence
+
     # get all matches at once, credit: https://stackoverflow.com/questions/7670112/finding-a-subimage-inside-a-numpy-image/9253805#9253805
-    result = cv2.matchTemplate(haystackImage, needleImage, cv2.TM_CCOEFF_NORMED)
-    match_indices = numpy.arange(result.size)[(result > confidence).flatten()]
+    match_indices = numpy.arange(result.size)[(match_condition).flatten()]
     matches = numpy.unravel_index(match_indices[:limit], result.shape)
 
     if len(matches[0]) == 0:
