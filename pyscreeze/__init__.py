@@ -118,6 +118,7 @@ if sys.platform == 'win32':
         try:
             yield hDC
         finally:
+            windll.user32.ReleaseDC.argtypes = [ctypes.c_ssize_t, ctypes.c_ssize_t]
             if windll.user32.ReleaseDC(hWnd, hDC) == 0:
                 raise WindowsError("windll.user32.ReleaseDC failed : return 0")
 
