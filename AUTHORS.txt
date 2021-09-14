@@ -12,6 +12,7 @@ Davee Nguyen https://github.com/daveenguyen
 David O'Gwynn https://github.com/dogwynn
 ijknabla https://github.com/ijknabla
 Jeremy R. Gray https://github.com/jeremygray
+John Hendy https://github.com/jwhendy
 Jon Winsley https://github.com/glitchassassin
 Julien Schueller https://github.com/jschueller
 Lauritz Thaulow https://github.com/LauritzThaulow
