@@ -18,6 +18,7 @@ import subprocess
 import sys
 import time
 import errno
+import numpy as np
 
 from contextlib import contextmanager
 
@@ -163,9 +164,9 @@ def _load_cv2(img, grayscale=None):
         # the function returns an empty matrix
         # http://docs.opencv.org/3.0-beta/modules/imgcodecs/doc/reading_and_writing_images.html
         if grayscale:
-            img_cv = cv2.imread(img, LOAD_GRAYSCALE)
+            img_cv = cv2.imdecode(np.fromfile(img, dtype=np.uint8), LOAD_GRAYSCALE)
         else:
-            img_cv = cv2.imread(img, LOAD_COLOR)
+            img_cv = cv2.imdecode(np.fromfile(img, dtype=np.uint8), LOAD_COLOR)
         if img_cv is None:
             raise IOError("Failed to read %s because file is missing, "
                           "has improper permissions, or is an "
