@@ -43,13 +43,11 @@ You can visually locate something on the screen if you have an image file of it.
     >>> button7x, button7y = pyscreeze.center(button7location)
     >>> button7x, button7y
     (1441, 582)
-    >>> pyscreeze.click(button7x, button7y)  # clicks the center of where the 7 button was found
 
 The `locateCenterOnScreen()` function is probably the one you want to use most often:
 
     >>> import pyscreeze
     >>> x, y = pyscreeze.locateCenterOnScreen('calc7key.png')
-    >>> pyscreeze.click(x, y)
 
 On a 1920 x 1080 screen, the locate function calls take about 1 or 2 seconds. This may be too slow for action video games, but works for most purposes and applications.
 
