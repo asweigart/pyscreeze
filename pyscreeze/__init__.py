@@ -10,6 +10,7 @@ http://ubuntuforums.org/showthread.php?t=1751455
 
 __version__ = '0.1.28'
 
+from math import sqrt
 import collections
 import datetime
 import functools
@@ -415,6 +416,26 @@ def locateCenterOnScreen(image, **kwargs):
         return None
     else:
         return center(coords)
+
+
+def locateCenterOnScreenNear(x, y, needleImage):
+    def distanceBetweenPoints(x1, y1, x2, y2):
+        return sqrt(((x2 - x1) ** 2) + ((y2 - y1) ** 2))
+
+    images = list(locateAllOnScreen(needleImage))
+    distances = []
+
+    # getting distance of all points from given point
+    for image in images:
+        imageX, imageY = center(image)
+        distances.append(distanceBetweenPoints(x, y, imageX, imageY))
+
+    # index of minimum distance
+    minIndex = distances.index(min(distances))
+
+    # returning of center of found image at minimum distance from point
+    return center(images[minIndex])
+
 
 def locateOnWindow(image, title, **kwargs):
     """
