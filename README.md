@@ -8,6 +8,8 @@ About
 
 PyScreeze can take screenshots, save them to files, and locate images within the screen. This is useful if you have a small image of, say, a button that needs to be clicked and want to locate it on the screen.
 
+NOTE - PyScreeze depends on Pillow, whose older versions have security issues. The only secure versions of Pillow are 8.3.2 and later. However, Pillow 8.3.2 only supports Python as far back as Python 3.6. If you are installing PyScreeze for Python 3.5 or earlier, be aware that there may be security issues with the version of Pillow it uses.
+
 Screenshot functionality requires the Pillow module. OS X uses the `screencapture` command, which comes with the operating system. Linux uses the `scrot` command, which can be installed by running `sudo apt-get install scrot`.
 
 Special Notes About Ubuntu
