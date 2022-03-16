@@ -1,12 +1,5 @@
-# PyScreeze
-
-"""
-NOTE:
-Apparently Pillow support on Ubuntu 64-bit has several additional steps since it doesn't have JPEG/PNG support out of the box. Description here:
-
-https://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-png-support
-http://ubuntuforums.org/showthread.php?t=1751455
-"""
+# PyScreeze - PyScreeze is a simple, cross-platform screenshot module for Python 2 and 3.
+# By Al Sweigart al@inventwithpython.com
 
 __version__ = '0.1.28'
 
@@ -44,18 +37,10 @@ except ImportError:
 try:
     import cv2, numpy
     useOpenCV = True
-    RUNNING_CV_2 = cv2.__version__[0] < '3'
 except ImportError:
     useOpenCV = False
 
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
-if useOpenCV:
-    if RUNNING_CV_2:
-        LOAD_COLOR = cv2.CV_LOAD_IMAGE_COLOR
-        LOAD_GRAYSCALE = cv2.CV_LOAD_IMAGE_GRAYSCALE
-    else:
-        LOAD_COLOR = cv2.IMREAD_COLOR
-        LOAD_GRAYSCALE = cv2.IMREAD_GRAYSCALE
 
 if not RUNNING_PYTHON_2:
     unicode = str # On Python 3, all the isinstance(spam, (str, unicode)) calls will work the same as Python 2.
@@ -127,10 +112,18 @@ Point = collections.namedtuple('Point', 'x y')
 RGB = collections.namedtuple('RGB', 'red green blue')
 
 class PyScreezeException(Exception):
-    pass # This is a generic exception class raised when a PyScreeze-related error happens.
+    """PyScreezeException is a generic exception class raised when a
+    PyScreeze-related error happens. If a PyScreeze function raises an
+    exception that isn't PyScreezeException or a subclass, assume it is
+    a bug in PyScreeze."""
+    pass
 
 class ImageNotFoundException(PyScreezeException):
-    pass # This is an exception class raised when the locate functions fail to locate an image.
+    """ImageNotFoundException is an exception class raised when the
+    locate functions fail to locate an image. You must set
+    pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION to True to enable this feature.
+    Otherwise, the locate functions will return None."""
+    pass
 
 
 def requiresPillow(wrappedFunction):
@@ -163,9 +156,9 @@ def _load_cv2(img, grayscale=None):
         # the function returns an empty matrix
         # http://docs.opencv.org/3.0-beta/modules/imgcodecs/doc/reading_and_writing_images.html
         if grayscale:
-            img_cv = cv2.imread(img, LOAD_GRAYSCALE)
+            img_cv = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
         else:
-            img_cv = cv2.imread(img, LOAD_COLOR)
+            img_cv = cv2.imread(img, cv2.IMREAD_COLOR)
         if img_cv is None:
             raise IOError("Failed to read %s because file is missing, "
                           "has improper permissions, or is an "
