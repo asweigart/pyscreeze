@@ -80,6 +80,7 @@ try:
         whichProc = subprocess.Popen(
             ['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         scrotExists = whichProc.wait() == 0
+        whichProc.communicate()
 except OSError as ex:
     if ex.errno == errno.ENOENT:
         # if there is no "which" program to find scrot, then assume there
@@ -405,10 +406,10 @@ def locateCenterOnScreen(image, **kwargs):
     TODO
     """
     coords = locateOnScreen(image, **kwargs)
-    if coords is None:
-        return None
-    else:
+    if coords is not None:
         return center(coords)
+    elif USE_IMAGE_NOT_FOUND_EXCEPTION:
+        raise ImageNotFoundException('Could not locate the image.')
 
 
 def locateCenterOnScreenNear(x, y, needleImage):
