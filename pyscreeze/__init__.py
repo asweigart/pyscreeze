@@ -139,6 +139,20 @@ def requiresPillow(wrappedFunction):
         return wrappedFunction(*args, **kwargs)
     return wrapper
 
+
+def requiresPyGetWindow(wrappedFunction):
+    """
+    A decorator that marks a function as requiring PyGetWindow to be installed.
+    This raises PyScreezeException if Pillow wasn't imported.
+    """
+    @functools.wraps(wrappedFunction)
+    def wrapper(*args, **kwargs):
+        if _PYGETWINDOW_UNAVAILABLE:
+            raise PyScreezeException('The PyGetWindow package is required to use this function.')
+        return wrappedFunction(*args, **kwargs)
+    return wrapper
+
+
 def _load_cv2(img, grayscale=None):
     """
     TODO
@@ -411,32 +425,47 @@ def locateCenterOnScreen(image, **kwargs):
         return center(coords)
 
 
-def locateCenterOnScreenNear(x, y, needleImage):
-    def distanceBetweenPoints(x1, y1, x2, y2):
-        return sqrt(((x2 - x1) ** 2) + ((y2 - y1) ** 2))
+def locateOnScreenNear(image, x, y):
+    """
+    TODO
+    """
 
-    images = list(locateAllOnScreen(needleImage))
-    distances = []
+    foundMatchesBoxes = list(locateAllOnScreen(image))
+
+    # NOTE: distances actually contains the distances squared, since getting the square root is expensive and unnecessary
+    distances = []  # images[i] is related to distances[i]
+    shortestDistanceIndex = 0  # The index of the shortest distance in `distances`
 
     # getting distance of all points from given point
-    for image in images:
-        imageX, imageY = center(image)
-        distances.append(distanceBetweenPoints(x, y, imageX, imageY))
+    for foundMatchesBox in foundMatchesBoxes:
+        foundMatchX, foundMatchY = center(foundMatchesBox)
+        xDistance = abs(x - foundMatchX)
+        yDistance = abs(y - foundMatchY)
+        distances.append(xDistance * xDistance + yDistance * yDistance)
 
-    # index of minimum distance
-    minIndex = distances.index(min(distances))
+        if distances[-1] < distances[shortestDistanceIndex]:
+            shortestDistanceIndex = len(distances) - 1
 
-    # returning of center of found image at minimum distance from point
-    return center(images[minIndex])
+    # Returns the Box object of the match closest to x, y
+    return foundMatchesBoxes[shortestDistanceIndex]
 
 
+def locateCenterOnScreenNear(image, x, y, **kwargs):
+    """
+    TODO
+    """
+    coords = locateOnScreenNear(image, x, y, **kwargs)
+    if coords is None:
+        return None
+    else:
+        return center(coords)
+
+
+@requiresPyGetWindow
 def locateOnWindow(image, title, **kwargs):
     """
     TODO
     """
-    if _PYGETWINDOW_UNAVAILABLE:
-        raise PyScreezeException('locateOnWindow() failed because PyGetWindow is not installed or is unsupported on this platform.')
-
     matchingWindows = pygetwindow.getWindowsWithTitle(title)
     if len(matchingWindows) == 0:
         raise PyScreezeException('Could not find a window with %s in the title' % (title))
@@ -446,6 +475,14 @@ def locateOnWindow(image, title, **kwargs):
     win = matchingWindows[0]
     win.activate()
     return locateOnScreen(image, region=(win.left, win.top, win.width, win.height), **kwargs)
+
+
+@requiresPyGetWindow
+def screenshotWindow(title):
+    """
+    TODO
+    """
+    pass # Not implemented yet.
 
 
 @requiresPillow
