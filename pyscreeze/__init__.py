@@ -75,15 +75,19 @@ GRAYSCALE_DEFAULT = False
 USE_IMAGE_NOT_FOUND_EXCEPTION = False
 
 scrotExists = False
+gnomeScreenshotExists = False
 try:
     if sys.platform not in ('java', 'darwin', 'win32'):
         whichProc = subprocess.Popen(
             ['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         scrotExists = whichProc.wait() == 0
+        whichProc = subprocess.Popen(
+            ['which', 'gnome-screenshot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        gnomeScreenshotExists = whichProc.wait() == 0
 except OSError as ex:
     if ex.errno == errno.ENOENT:
-        # if there is no "which" program to find scrot, then assume there
-        # is no scrot.
+        # if there is no "which" program to find scrot or gnome-screenshot, then assume there
+        # is no scrot or gnome-screenshot.
         pass
     else:
         raise
@@ -509,31 +513,35 @@ def _screenshot_linux(imageFilename=None, region=None):
     """
     TODO
     """
-    if not scrotExists:
-        raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
+    if not scrotExists and not gnomeScreenshotExists:
+        raise NotImplementedError('"scrot" or "gnome-screenshot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot or sudo apt-get install gnome-screenshot')
     if imageFilename is None:
         tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
         tmpFilename = imageFilename
     if scrotExists:
         subprocess.call(['scrot', '-z', tmpFilename])
-        im = Image.open(tmpFilename)
-
-        if region is not None:
-            assert len(region) == 4, 'region argument must be a tuple of four ints'
-            region = [int(x) for x in region]
-            im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-            os.unlink(tmpFilename) # delete image of entire screen to save cropped version
-            im.save(tmpFilename)
-        else:
-            # force loading before unlinking, Image.open() is lazy
-            im.load()
-
-        if imageFilename is None:
-            os.unlink(tmpFilename)
-        return im
+    elif gnomeScreenshotExists:
+        subprocess.call(['gnome-screenshot', '-f', tmpFilename])
     else:
-        raise Exception('The scrot program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot')
+        raise Exception('"scrot" or "gnome-screenshot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot or sudo apt-get install gnome-screenshot')
+    
+    im = Image.open(tmpFilename)
+
+    if region is not None:
+        assert len(region) == 4, 'region argument must be a tuple of four ints'
+        region = [int(x) for x in region]
+        im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+        os.unlink(tmpFilename) # delete image of entire screen to save cropped version
+        im.save(tmpFilename)
+    else:
+        # force loading before unlinking, Image.open() is lazy
+        im.load()
+
+    if imageFilename is None:
+        os.unlink(tmpFilename)
+    return im
+    
 
 
 
