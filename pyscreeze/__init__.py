@@ -88,6 +88,28 @@ except OSError as ex:
     else:
         raise
 
+isWaylandSession = False
+if sys.platform == 'linux':
+    try:
+        # ref: https://unix.stackexchange.com/questions/202891/how-to-know-whether-wayland-or-x11-is-being-used#comment1133584_371164
+        session_string = subprocess.check_output("loginctl show-session $(loginctl show-user $(whoami) -p Display --value) -p Type --value", shell=True, stderr=subprocess.STDOUT).decode().strip()
+        isWaylandSession = session_string == 'wayland'
+    except subprocess.CalledProcessError:
+         pass # assume no Wayland if execution fails
+
+gnomescreenshotExists = False
+if sys.platform == 'linux':
+    try:
+        whichProc = subprocess.Popen(
+            ['which', 'gnome-screenshot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        gnomescreenshotExists = whichProc.wait() == 0
+    except OSError as ex:
+        if ex.errno == errno.ENOENT:
+            # if there is no "which" program to find gnome-screenshot, then assume there
+            # is no gnome-screenshot.
+            pass
+        else:
+            raise
 
 if sys.platform == 'win32':
     from ctypes import windll
@@ -509,32 +531,36 @@ def _screenshot_linux(imageFilename=None, region=None):
     """
     TODO
     """
-    if not scrotExists:
-        raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
     if imageFilename is None:
         tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
         tmpFilename = imageFilename
-    if scrotExists:
-        subprocess.call(['scrot', '-z', tmpFilename])
-        im = Image.open(tmpFilename)
 
-        if region is not None:
-            assert len(region) == 4, 'region argument must be a tuple of four ints'
-            region = [int(x) for x in region]
-            im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-            os.unlink(tmpFilename) # delete image of entire screen to save cropped version
-            im.save(tmpFilename)
+    if isWaylandSession:
+        if gnomescreenshotExists:
+            # scrot generates a blank black screen for Wayland sessions, but we can use gnome-screenshot if it's available
+            subprocess.call(['gnome-screenshot', '-f', tmpFilename])
         else:
-            # force loading before unlinking, Image.open() is lazy
-            im.load()
-
-        if imageFilename is None:
-            os.unlink(tmpFilename)
-        return im
+            raise Exception("pyscreeze only supports Wayland session when gnome-screenshot is available")
+    elif scrotExists:
+        subprocess.call(['scrot', '-z', tmpFilename])
     else:
-        raise Exception('The scrot program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot')
+        raise Exception('The scrot program must be installed to take a screenshot in X sessions on Linux. Run: sudo apt-get install scrot')
 
+    im = Image.open(tmpFilename)
+    if region is not None:
+        assert len(region) == 4, 'region argument must be a tuple of four ints'
+        region = [int(x) for x in region]
+        im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+        os.unlink(tmpFilename) # delete image of entire screen to save cropped version
+        im.save(tmpFilename)
+    else:
+        # force loading before unlinking, Image.open() is lazy
+        im.load()
+
+    if imageFilename is None:
+        os.unlink(tmpFilename)
+    return im
 
 
 def _kmp(needle, haystack, _dummy): # Knuth-Morris-Pratt search algorithm implementation (to be used by screen capture)
