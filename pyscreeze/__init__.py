@@ -87,6 +87,13 @@ except OSError as ex:
         pass
     else:
         raise
+if scrotExists:
+    if os.path.isfile('/etc/centos-release') or \
+       os.path.isfile('/etc/fedora-release') or \
+       os.path.isfile('/etc/redhat-release'):
+        scrotOption = ''
+    else:
+        scrotOption = '-z'
 
 
 if sys.platform == 'win32':
@@ -516,7 +523,10 @@ def _screenshot_linux(imageFilename=None, region=None):
     else:
         tmpFilename = imageFilename
     if scrotExists:
-        subprocess.call(['scrot', '-z', tmpFilename])
+        if scrotOption:
+            subprocess.call(['scrot', scrotOption, tmpFilename])
+        else:
+            subprocess.call(['scrot', tmpFilename])
         im = Image.open(tmpFilename)
 
         if region is not None:
