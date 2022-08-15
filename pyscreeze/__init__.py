@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import errno
+import tempfile
 
 from contextlib import contextmanager
 
@@ -482,24 +483,18 @@ def _screenshot_osx(imageFilename=None, region=None):
     """
     TODO
     """
-    # TODO - use tmp name for this file.
-    if imageFilename is None:
-        tmpFilename = 'screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
-    else:
+    tmpFilename = tempfile.NamedTemporaryFile(suffix='.png').name
+    if imageFilename is not None:
         tmpFilename = imageFilename
-    subprocess.call(['screencapture', '-x', tmpFilename])
-    im = Image.open(tmpFilename)
 
-    if region is not None:
+    if region is None:
+        subprocess.call(['screencapture', '-x', tmpFilename])
+    else:
         assert len(region) == 4, 'region argument must be a tuple of four ints'
         region = [int(x) for x in region]
-        im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-        os.unlink(tmpFilename) # delete image of entire screen to save cropped version
-        im.save(tmpFilename)
-    else:
-        # force loading before unlinking, Image.open() is lazy
-        im.load()
+        subprocess.call(['screencapture', '-x', '-R', f'{region[0]},{region[1]},{region[2]},{region[3]}', tmpFilename])
 
+    im = Image.open(tmpFilename)
     if imageFilename is None:
         os.unlink(tmpFilename)
     return im
