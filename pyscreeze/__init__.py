@@ -487,7 +487,10 @@ def _screenshot_osx(imageFilename=None, region=None):
         tmpFilename = 'screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
         tmpFilename = imageFilename
-    subprocess.call(['screencapture', '-x', tmpFilename])
+    tmpFilename = os.path.expanduser(tmpFilename)
+    cmd_list = ['screencapture', '-x', tmpFilename]
+    if subprocess.call(cmd_list) != 0:
+        raise(RuntimeError("The command, subprocess.call({}), failed so no screenshot is saved to {}".format(cmd_list,tmpFilename)))
     im = Image.open(tmpFilename)
 
     if region is not None:
