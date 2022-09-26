@@ -369,33 +369,33 @@ def _locateAll_opencv(
         grayscale = GRAYSCALE_DEFAULT
     confidence = float(confidence)
 
-    needleImage = _load_cv2(needleImage, grayscale)
-    needleHeight, needleWidth = needleImage.shape[:2]
-    haystackImage = _load_cv2(haystackImage, grayscale)
+    _needleImage = _load_cv2(needleImage, grayscale)
+    needleHeight, needleWidth = _needleImage.shape[:2]
+    _haystackImage = _load_cv2(haystackImage, grayscale)
 
     if region:
-        haystackImage = haystackImage[region[1]:region[1]+region[3],
+        _haystackImage = _haystackImage[region[1]:region[1]+region[3],
                                       region[0]:region[0]+region[2]]
     else:
-        region = (0, 0)  # full image; these values used in the yield statement
-    if (haystackImage.shape[0] < needleImage.shape[0] or
-        haystackImage.shape[1] < needleImage.shape[1]):
+        region = (0, 0, 0, 0)  # full image; these values used in the yield statement
+    if (_haystackImage.shape[0] < _needleImage.shape[0] or
+        _haystackImage.shape[1] < _needleImage.shape[1]):
         # avoid semi-cryptic OpenCV error below if bad size
         raise ValueError('needle dimension(s) exceed the haystack image or region dimensions')
 
     if step == 2:
         confidence *= 0.95
-        needleImage = needleImage[::step, ::step]
-        haystackImage = haystackImage[::step, ::step]
+        _needleImage = _needleImage[::step, ::step]
+        _haystackImage = _haystackImage[::step, ::step]
     else:
         step = 1
 
     # get all matches at once, credit: https://stackoverflow.com/questions/7670112/finding-a-subimage-inside-a-numpy-image/9253805#9253805
-    result = cv2.matchTemplate(haystackImage, needleImage, cv2.TM_CCOEFF_NORMED)
+    result = cv2.matchTemplate(_haystackImage, _needleImage, cv2.TM_CCOEFF_NORMED)
     match_indices = numpy.arange(result.size)[(result > confidence).flatten()]
     matches = numpy.unravel_index(match_indices[:limit], result.shape)
 
-    if len(matches[0]) == 0:
+    if len(matches[0]) == 0:  # pyright: ignore[reportGeneralTypeIssues]
         if USE_IMAGE_NOT_FOUND_EXCEPTION:
             raise ImageNotFoundException('Could not locate the image (highest confidence = %.3f)' % result.max())
         else:
@@ -404,7 +404,7 @@ def _locateAll_opencv(
     # use a generator for API consistency:
     matchx = matches[1] * step + region[0]  # vectorized
     matchy = matches[0] * step + region[1]
-    for x, y in zip(matchx, matchy):
+    for x, y in zip(matchx, matchy):  # pyright: ignore[reportGeneralTypeIssues]
         yield Box(x, y, needleWidth, needleHeight)
 
 
@@ -444,7 +444,7 @@ def _locateAll_python(
     if region is not None:
         haystackImage = haystackImage.crop((region[0], region[1], region[0] + region[2], region[1] + region[3]))
     else:
-        region = (0, 0) # set to 0 because the code always accounts for a region
+        region = (0, 0, 0, 0) # set to 0 because the code always accounts for a region
 
     if grayscale: # if grayscale mode is on, convert the needle and haystack images to grayscale
         needleImage = ImageOps.grayscale(needleImage)
@@ -517,7 +517,7 @@ def _locateAll_python(
             return
 
 
-def locate(needleImage, haystackImage, **kwargs):
+def locate(needleImage, haystackImage, **kwargs):  # type: ignore[no-redef]
     """
     TODO
     """
@@ -533,7 +533,7 @@ def locate(needleImage, haystackImage, **kwargs):
             return None
 
 
-def locateOnScreen(image, minSearchTime=0.0, **kwargs):
+def locateOnScreen(image, minSearchTime=0.0, **kwargs):  # type: ignore[no-redef]
     """TODO - rewrite this
     minSearchTime - amount of time in seconds to repeat taking
     screenshots and trying to locate a match.  The default of 0 performs
@@ -545,7 +545,7 @@ def locateOnScreen(image, minSearchTime=0.0, **kwargs):
             screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
             retVal = locate(image, screenshotIm, **kwargs)
             try:
-                screenshotIm.fp.close()
+                screenshotIm.fp.close()  # pyright: ignore[reportGeneralTypeIssues]
             except AttributeError:
                 # Screenshots on Windows won't have an fp since they came from
                 # ImageGrab, not a file. Screenshots on Linux will have fp set
@@ -561,7 +561,7 @@ def locateOnScreen(image, minSearchTime=0.0, **kwargs):
                     return None
 
 
-def locateAllOnScreen(image, **kwargs):
+def locateAllOnScreen(image, **kwargs): # type: ignore[no-redef]
     """
     TODO
     """
@@ -570,7 +570,7 @@ def locateAllOnScreen(image, **kwargs):
     screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
     retVal = locateAll(image, screenshotIm, **kwargs)
     try:
-        screenshotIm.fp.close()
+        screenshotIm.fp.close()  # pyright: ignore[reportGeneralTypeIssues]
     except AttributeError:
         # Screenshots on Windows won't have an fp since they came from
         # ImageGrab, not a file. Screenshots on Linux will have fp set
@@ -579,7 +579,7 @@ def locateAllOnScreen(image, **kwargs):
     return retVal
 
 
-def locateCenterOnScreen(image, **kwargs):
+def locateCenterOnScreen(image, **kwargs):  # type: ignore[no-redef]
     """
     TODO
     """
@@ -609,7 +609,7 @@ def locateCenterOnScreenNear(x, y, needleImage):
     return center(images[minIndex])
 
 
-def locateOnWindow(image, title, **kwargs):
+def locateOnWindow(image, title, **kwargs):  # type: ignore[no-redef]
     """
     TODO
     """
@@ -800,9 +800,10 @@ def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
         r, g, b = pix[:3]
         exR, exG, exB = expectedRGBColor[:3]
         return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance)
+    # FIXME: This code path is unreachable
     elif len(pix) == 4 and len(expectedRGBColor) == 4: #RGBA mode
-        r, g, b, a = pix
-        exR, exG, exB, exA = expectedRGBColor
+        r, g, b, a = pix # type: ignore
+        exR, exG, exB, exA = expectedRGBColor # type: ignore[misc]
         return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance) and (abs(a - exA) <= tolerance)
     else:
         assert False, 'Color mode was expected to be length 3 (RGB) or 4 (RGBA), but pixel is length %s and expectedRGBColor is length %s' % (len(pix), len(expectedRGBColor))
