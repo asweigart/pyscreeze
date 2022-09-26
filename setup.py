@@ -26,6 +26,7 @@ setup(
     long_description=long_description,
     license="MIT",
     packages=["pyscreeze"],
+    package_data={"pyscreeze": ["pyscreeze/py.typed"]},
     test_suite="tests",
     # NOTE: Update the python_version info for Pillow as Pillow supports later versions of Python.
     install_requires=['Pillow >= 8.3.2; python_version == "3.8"',
