@@ -515,26 +515,19 @@ def _screenshot_linux(imageFilename=None, region=None):
         tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
         tmpFilename = imageFilename
-    if scrotExists:
+
+    if region is None:
         subprocess.call(['scrot', '-z', tmpFilename])
-        im = Image.open(tmpFilename)
-
-        if region is not None:
-            assert len(region) == 4, 'region argument must be a tuple of four ints'
-            region = [int(x) for x in region]
-            im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-            os.unlink(tmpFilename) # delete image of entire screen to save cropped version
-            im.save(tmpFilename)
-        else:
-            # force loading before unlinking, Image.open() is lazy
-            im.load()
-
-        if imageFilename is None:
-            os.unlink(tmpFilename)
-        return im
     else:
-        raise Exception('The scrot program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot')
+        x, y, w, h = region
+        subprocess.call(['scrot', '-z', '-a', f'{x},{y},{w},{h}', tmpFilename])
 
+    im = Image.open(tmpFilename)
+    im.load()
+
+    if imageFilename is None:
+        os.unlink(tmpFilename)
+    return im
 
 
 def _kmp(needle, haystack, _dummy): # Knuth-Morris-Pratt search algorithm implementation (to be used by screen capture)
@@ -626,10 +619,12 @@ def pixel(x, y):
             bbggrr = "{:0>6x}".format(color) # bbggrr => 'bbggrr' (hex)
             b, g, r = (int(bbggrr[i:i+2], 16) for i in range(0, 6, 2))
             return (r, g, b)
+    elif sys.platform == 'darwin':
+        return RGB(*(screenshot().getpixel((x, y))[:3]))
     else:
         # Need to select only the first three values of the color in
         # case the returned pixel has an alpha channel
-        return RGB(*(screenshot().getpixel((x, y))[:3]))
+        return RGB(*(screenshot(region=[x, y, 1, 1]).getpixel((0, 0))[:3]))
 
 
 # set the screenshot() function based on the platform running this module
