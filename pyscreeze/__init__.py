@@ -19,6 +19,7 @@ try:
     from PIL import Image
     from PIL import ImageOps
     from PIL import ImageDraw
+    from PIL import __version__ as PIL__version__
     if sys.platform == 'win32': # TODO - Pillow now supports ImageGrab on macOS.
         from PIL import ImageGrab
     _PILLOW_UNAVAILABLE = False
@@ -520,25 +521,32 @@ def _screenshot_osx(imageFilename=None, region=None):
     TODO
     """
     # TODO - use tmp name for this file.
-    if imageFilename is None:
-        tmpFilename = 'screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
-    else:
-        tmpFilename = imageFilename
-    subprocess.call(['screencapture', '-x', tmpFilename])
-    im = Image.open(tmpFilename)
+    if tuple(PIL__version__) < (6, 2, 1):
+        # Use the screencapture program if Pillow is older than 6.2.1, which
+        # is when Pillow supported ImageGrab.grab() on macOS. (It may have
+        # supported it earlier than 6.2.1, but I haven't tested it.)
+        if imageFilename is None:
+            tmpFilename = 'screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
+        else:
+            tmpFilename = imageFilename
+        subprocess.call(['screencapture', '-x', tmpFilename])
+        im = Image.open(tmpFilename)
 
-    if region is not None:
-        assert len(region) == 4, 'region argument must be a tuple of four ints'
-        region = [int(x) for x in region]
-        im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-        os.unlink(tmpFilename) # delete image of entire screen to save cropped version
-        im.save(tmpFilename)
-    else:
-        # force loading before unlinking, Image.open() is lazy
-        im.load()
+        if region is not None:
+            assert len(region) == 4, 'region argument must be a tuple of four ints'
+            region = [int(x) for x in region]
+            im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+            os.unlink(tmpFilename) # delete image of entire screen to save cropped version
+            im.save(tmpFilename)
+        else:
+            # force loading before unlinking, Image.open() is lazy
+            im.load()
 
-    if imageFilename is None:
-        os.unlink(tmpFilename)
+        if imageFilename is None:
+            os.unlink(tmpFilename)
+    else:
+        # Use ImageGrab.grab() to get the screenshot if Pillow version 6.3.2 or later is installed.
+        im = ImageGrab.grab()
     return im
 
 
@@ -546,6 +554,9 @@ def _screenshot_linux(imageFilename=None, region=None):
     """
     TODO
     """
+
+    # NOTE: scrot doesn't run correctly on Wayland, it only runs on x11.
+
     if not scrotExists:
         raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
     if imageFilename is None:

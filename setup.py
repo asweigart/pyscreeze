@@ -1,6 +1,7 @@
 import io
 import os
 import re
+import platform
 from setuptools import setup
 
 scriptFolder = os.path.dirname(os.path.realpath(__file__))
@@ -28,17 +29,18 @@ setup(
     packages=["pyscreeze"],
     test_suite="tests",
     # NOTE: Update the python_version info for Pillow as Pillow supports later versions of Python.
-    install_requires=['Pillow >= 9.3.0; python_version == "3.11"',
+    install_requires=['pyscreenshot' if platform.system() == 'Linux' else '',
+                      'Pillow >= 9.3.0; python_version == "3.11"',
                       'Pillow >= 8.3.2; python_version == "3.10"',
-                      'Pillow >= 8.0.0; python_version == "3.9"',
-                      'Pillow >= 6.2.1; python_version == "3.8"',
-                      'Pillow >= 5.2.0; python_version == "3.7"',
-                      'Pillow < 9.0.0; Pillow >= 4.0.0; python_version == "3.6"',
+                      'Pillow >= 8.3.2; python_version == "3.9"', # Allows versions with pre-8.3.2 security vulnerabilities: 'Pillow >= 8.0.0; python_version == "3.9"',
+                      'Pillow >= 8.3.2; python_version == "3.8"', # Allows versions with pre-8.3.2 security vulnerabilities: 'Pillow >= 6.2.1; python_version == "3.8"',
+                      'Pillow >= 8.3.2; python_version == "3.7"', # Allows versions with pre-8.3.2 security vulnerabilities: 'Pillow >= 5.2.0; python_version == "3.7"',
+                      'Pillow < 9.0.0, >= 8.3.2; python_version == "3.6"', # Allows versions with pre-8.3.2 security vulnerabilities: 'Pillow < 9.0.0, >= 4.0.0; python_version == "3.6"',
                       'Pillow < 8.0.0, >= 3.2.0; python_version == "3.5"',
                       'Pillow < 6.0.0, >= 2.5.0; python_version == "3.4"',
                       'Pillow < 5.0.0, >= 2.0.0; python_version == "3.3"',
                       'Pillow < 4.0.0, >= 2.0.0; python_version == "3.2"',
-                      'Pillow < 7.0.0, Pillow >= 2.0.0; python_version == "2.7"',
+                      'Pillow < 7.0.0, >= 2.0.0; python_version == "2.7"',
                       ],
     requires_python=">=2.7, !=3.0.*, !=3.1.*",  # Pillow library has never supported pre-2.7 or 3.0 or 3.1.
     keywords="screenshot screen screencap capture scrot screencapture image",
@@ -61,5 +63,8 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
 )
