@@ -14,41 +14,27 @@ import errno
 
 from contextlib import contextmanager
 
-try:
-    from PIL import Image
-    from PIL import ImageOps
-    from PIL import ImageDraw
-    from PIL import __version__ as PIL__version__
+from PIL import Image
+from PIL import ImageOps
+from PIL import ImageDraw
+from PIL import __version__ as PIL__version__
+from PIL import ImageGrab
 
-    if sys.platform == 'win32':  # TODO - Pillow now supports ImageGrab on macOS.
-        from PIL import ImageGrab
-    _PILLOW_UNAVAILABLE = False
-except ImportError:
-    # We ignore this because failures due to Pillow not being installed
-    # should only happen when the functions that specifically depend on
-    # Pillow are called. The main use case is when PyAutoGUI imports
-    # PyScreeze, but Pillow isn't installed because the user is running
-    # some platform/version of Python that Pillow doesn't support, then
-    # importing PyAutoGUI should not automatically fail because it
-    # imports PyScreeze.
-    # So we have a `pass` statement here since a failure to import
-    # Pillow shouldn't crash PyScreeze.
-    _PILLOW_UNAVAILABLE = True
-
-
+useOpenCV: bool = False
 try:
     import cv2
     import numpy
 
     useOpenCV = True
 except ImportError:
-    useOpenCV = False
+    pass  # This is fine, useOpenCV will stay as False.
 
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
 
 if not RUNNING_PYTHON_2:
     unicode = str  # On Python 3, all the isinstance(spam, (str, unicode)) calls will work the same as Python 2.
 
+_PYGETWINDOW_UNAVAILABLE = True
 if sys.platform == 'win32':
     # On Windows, the monitor scaling can be set to something besides normal 100%.
     # PyScreeze and Pillow needs to account for this to make accurate screenshots.
@@ -66,11 +52,10 @@ if sys.platform == 'win32':
         _PYGETWINDOW_UNAVAILABLE = True
     else:
         _PYGETWINDOW_UNAVAILABLE = False
-else:
-    _PYGETWINDOW_UNAVAILABLE = True
+    
 
 
-GRAYSCALE_DEFAULT = False
+GRAYSCALE_DEFAULT = True
 
 # For version 0.1.19 I changed it so that ImageNotFoundException was raised
 # instead of returning None. In hindsight, this change came too late, so I'm
@@ -254,8 +239,7 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
         yield Box(x, y, needleWidth, needleHeight)
 
 
-# TODO - We should consider renaming _locateAll_python to _locateAll_pillow, since Pillow is the real dependency.
-def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1, confidence=None):
+def _locateAll_pillow(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1, confidence=None):
     """
     TODO
     """
@@ -725,9 +709,9 @@ else:
 
 # set the locateAll function to use opencv if possible; python 3 needs opencv 3.0+
 # TODO - Should this raise an exception if zero instances of the image can be found on the screen, instead of always returning a generator?
+locateAll = _locateAll_pillow
 if useOpenCV:
     locateAll = _locateAll_opencv
     if not RUNNING_PYTHON_2 and cv2.__version__ < '3':
-        locateAll = _locateAll_python
-else:
-    locateAll = _locateAll_python
+        locateAll = _locateAll_pillow
+
