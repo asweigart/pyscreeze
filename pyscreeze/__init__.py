@@ -142,21 +142,6 @@ class ImageNotFoundException(PyScreezeException):
     pass
 
 
-def requiresPillow(wrappedFunction):
-    """
-    A decorator that marks a function as requiring Pillow to be installed.
-    This raises PyScreezeException if Pillow wasn't imported.
-    """
-
-    @functools.wraps(wrappedFunction)
-    def wrapper(*args, **kwargs):
-        if _PILLOW_UNAVAILABLE:
-            raise PyScreezeException('The Pillow package is required to use this function.')
-        return wrappedFunction(*args, **kwargs)
-
-    return wrapper
-
-
 def requiresPyGetWindow(wrappedFunction):
     """
     A decorator that marks a function as requiring PyGetWindow to be installed.
@@ -270,7 +255,6 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
 
 
 # TODO - We should consider renaming _locateAll_python to _locateAll_pillow, since Pillow is the real dependency.
-@requiresPillow
 def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1, confidence=None):
     """
     TODO
@@ -518,7 +502,6 @@ def screenshotWindow(title):
     pass  # Not implemented yet.
 
 
-@requiresPillow
 def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen.png'):
     """
     TODO
@@ -536,7 +519,6 @@ def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen
     screenshotIm.save(filename)
 
 
-@requiresPillow
 def _screenshot_win32(imageFilename=None, region=None):
     """
     TODO
@@ -740,7 +722,6 @@ else:
     # Everything else is considered to be Linux.
     screenshot = _screenshot_linux
 
-grab = screenshot  # for compatibility with Pillow/PIL's ImageGrab module.
 
 # set the locateAll function to use opencv if possible; python 3 needs opencv 3.0+
 # TODO - Should this raise an exception if zero instances of the image can be found on the screen, instead of always returning a generator?

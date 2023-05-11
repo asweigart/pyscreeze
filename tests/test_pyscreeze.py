@@ -114,7 +114,6 @@ class TestGeneral(unittest.TestCase):
         pyscreeze.center
         pyscreeze.pixelMatchesColor
         pyscreeze.pixel
-        pyscreeze.grab
 
 
     def test_screenshot(self):
