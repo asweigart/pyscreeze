@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pyscreeze = {editable = true, path = "."}
+
+[dev-packages]
+pytest = "*"
+sphinx = "*"
+ruff = "*"
+black = "*"
+mypy = "*"
+
+[requires]
+python_version = "3.11"
