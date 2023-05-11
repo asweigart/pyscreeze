@@ -1,9 +1,8 @@
 # PyScreeze - PyScreeze is a simple, cross-platform screenshot module for Python 2 and 3.
 # By Al Sweigart al@inventwithpython.com
 
-__version__ = '0.1.28'
+__version__ = '1.0.0'
 
-from math import sqrt
 import collections
 import datetime
 import functools
@@ -20,7 +19,8 @@ try:
     from PIL import ImageOps
     from PIL import ImageDraw
     from PIL import __version__ as PIL__version__
-    if sys.platform == 'win32': # TODO - Pillow now supports ImageGrab on macOS.
+
+    if sys.platform == 'win32':  # TODO - Pillow now supports ImageGrab on macOS.
         from PIL import ImageGrab
     _PILLOW_UNAVAILABLE = False
 except ImportError:
@@ -37,7 +37,9 @@ except ImportError:
 
 
 try:
-    import cv2, numpy
+    import cv2
+    import numpy
+
     useOpenCV = True
 except ImportError:
     useOpenCV = False
@@ -45,17 +47,18 @@ except ImportError:
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
 
 if not RUNNING_PYTHON_2:
-    unicode = str # On Python 3, all the isinstance(spam, (str, unicode)) calls will work the same as Python 2.
+    unicode = str  # On Python 3, all the isinstance(spam, (str, unicode)) calls will work the same as Python 2.
 
 if sys.platform == 'win32':
     # On Windows, the monitor scaling can be set to something besides normal 100%.
     # PyScreeze and Pillow needs to account for this to make accurate screenshots.
     # TODO - How does macOS and Linux handle monitor scaling?
     import ctypes
+
     try:
-       ctypes.windll.user32.SetProcessDPIAware()
+        ctypes.windll.user32.SetProcessDPIAware()
     except AttributeError:
-        pass # Windows XP doesn't support monitor scaling, so just do nothing.
+        pass  # Windows XP doesn't support monitor scaling, so just do nothing.
 
     try:
         import pygetwindow
@@ -78,8 +81,7 @@ USE_IMAGE_NOT_FOUND_EXCEPTION = False
 scrotExists = False
 try:
     if sys.platform not in ('java', 'darwin', 'win32'):
-        whichProc = subprocess.Popen(
-            ['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        whichProc = subprocess.Popen(['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         scrotExists = whichProc.wait() == 0
 except OSError as ex:
     if ex.errno == errno.ENOENT:
@@ -95,12 +97,19 @@ if sys.platform == 'win32':
 
     # win32 DC(DeviceContext) Manager
     @contextmanager
-    def __win32_openDC(hWnd):
+    def __win32_openDC(hWnd=0):
         """
-        TODO
+        A context manager for handling calling GetDC() and ReleaseDC().
+
+        This is used for win32 API calls, used by the pixel() function
+        on Windows.
+
+        Args:
+            hWnd (int): The handle for the window to get a device context
+        of, defaults to 0
         """
         hDC = windll.user32.GetDC(hWnd)
-        if hDC == 0: #NULL
+        if hDC == 0:  # NULL
             raise WindowsError("windll.user32.GetDC failed : return NULL")
         try:
             yield hDC
@@ -109,22 +118,27 @@ if sys.platform == 'win32':
             if windll.user32.ReleaseDC(hWnd, hDC) == 0:
                 raise WindowsError("windll.user32.ReleaseDC failed : return 0")
 
+
 Box = collections.namedtuple('Box', 'left top width height')
 Point = collections.namedtuple('Point', 'x y')
 RGB = collections.namedtuple('RGB', 'red green blue')
+
 
 class PyScreezeException(Exception):
     """PyScreezeException is a generic exception class raised when a
     PyScreeze-related error happens. If a PyScreeze function raises an
     exception that isn't PyScreezeException or a subclass, assume it is
     a bug in PyScreeze."""
+
     pass
+
 
 class ImageNotFoundException(PyScreezeException):
     """ImageNotFoundException is an exception class raised when the
     locate functions fail to locate an image. You must set
     pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION to True to enable this feature.
     Otherwise, the locate functions will return None."""
+
     pass
 
 
@@ -133,11 +147,13 @@ def requiresPillow(wrappedFunction):
     A decorator that marks a function as requiring Pillow to be installed.
     This raises PyScreezeException if Pillow wasn't imported.
     """
+
     @functools.wraps(wrappedFunction)
     def wrapper(*args, **kwargs):
         if _PILLOW_UNAVAILABLE:
             raise PyScreezeException('The Pillow package is required to use this function.')
         return wrappedFunction(*args, **kwargs)
+
     return wrapper
 
 
@@ -146,11 +162,13 @@ def requiresPyGetWindow(wrappedFunction):
     A decorator that marks a function as requiring PyGetWindow to be installed.
     This raises PyScreezeException if Pillow wasn't imported.
     """
+
     @functools.wraps(wrappedFunction)
     def wrapper(*args, **kwargs):
         if _PYGETWINDOW_UNAVAILABLE:
             raise PyScreezeException('The PyGetWindow package is required to use this function.')
         return wrappedFunction(*args, **kwargs)
+
     return wrapper
 
 
@@ -176,9 +194,11 @@ def _load_cv2(img, grayscale=None):
         else:
             img_cv = cv2.imread(img, cv2.IMREAD_COLOR)
         if img_cv is None:
-            raise IOError("Failed to read %s because file is missing, "
-                          "has improper permissions, or is an "
-                          "unsupported or invalid format" % img)
+            raise IOError(
+                "Failed to read %s because file is missing, "
+                "has improper permissions, or is an "
+                "unsupported or invalid format" % img
+            )
     elif isinstance(img, numpy.ndarray):
         # don't try to convert an already-gray image to gray
         if grayscale and len(img.shape) == 3:  # and img.shape[2] == 3:
@@ -196,8 +216,7 @@ def _load_cv2(img, grayscale=None):
     return img_cv
 
 
-def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, region=None, step=1,
-                      confidence=0.999):
+def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, region=None, step=1, confidence=0.999):
     """
     TODO - rewrite this
         faster but more memory-intensive than pure python
@@ -218,12 +237,10 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
     haystackImage = _load_cv2(haystackImage, grayscale)
 
     if region:
-        haystackImage = haystackImage[region[1]:region[1]+region[3],
-                                      region[0]:region[0]+region[2]]
+        haystackImage = haystackImage[region[1] : region[1] + region[3], region[0] : region[0] + region[2]]
     else:
         region = (0, 0)  # full image; these values used in the yield statement
-    if (haystackImage.shape[0] < needleImage.shape[0] or
-        haystackImage.shape[1] < needleImage.shape[1]):
+    if haystackImage.shape[0] < needleImage.shape[0] or haystackImage.shape[1] < needleImage.shape[1]:
         # avoid semi-cryptic OpenCV error below if bad size
         raise ValueError('needle dimension(s) exceed the haystack image or region dimensions')
 
@@ -280,9 +297,9 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
     if region is not None:
         haystackImage = haystackImage.crop((region[0], region[1], region[0] + region[2], region[1] + region[3]))
     else:
-        region = (0, 0) # set to 0 because the code always accounts for a region
+        region = (0, 0)  # set to 0 because the code always accounts for a region
 
-    if grayscale: # if grayscale mode is on, convert the needle and haystack images to grayscale
+    if grayscale:  # if grayscale mode is on, convert the needle and haystack images to grayscale
         needleImage = ImageOps.grayscale(needleImage)
         haystackImage = ImageOps.grayscale(haystackImage)
     else:
@@ -299,11 +316,17 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
     needleImageData = tuple(needleImage.getdata())
     haystackImageData = tuple(haystackImage.getdata())
 
-    needleImageRows = [needleImageData[y * needleWidth:(y+1) * needleWidth] for y in range(needleHeight)] # LEFT OFF - check this
+    needleImageRows = [
+        needleImageData[y * needleWidth : (y + 1) * needleWidth] for y in range(needleHeight)
+    ]  # LEFT OFF - check this
     needleImageFirstRow = needleImageRows[0]
 
-    assert len(needleImageFirstRow) == needleWidth, 'For some reason, the calculated width of first row of the needle image is not the same as the width of the image.'
-    assert [len(row) for row in needleImageRows] == [needleWidth] * needleHeight, 'For some reason, the needleImageRows aren\'t the same size as the original image.'
+    assert (
+        len(needleImageFirstRow) == needleWidth
+    ), 'For some reason, the calculated width of first row of the needle image is not the same as the width of the image.'
+    assert [len(row) for row in needleImageRows] == [
+        needleWidth
+    ] * needleHeight, 'For some reason, the needleImageRows aren\'t the same size as the original image.'
 
     numMatchesFound = 0
 
@@ -311,20 +334,24 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
     # value greater than 1 does not give *any* significant performance improvements.
     # Since using a step higher than 1 makes for less accurate matches, it will be
     # set to 1.
-    step = 1 # hard-code step as 1 until a way to improve it can be figured out.
+    step = 1  # hard-code step as 1 until a way to improve it can be figured out.
 
     if step == 1:
         firstFindFunc = _kmp
     else:
         firstFindFunc = _steppingFind
 
-
-    for y in range(haystackHeight): # start at the leftmost column
-        for matchx in firstFindFunc(needleImageFirstRow, haystackImageData[y * haystackWidth:(y+1) * haystackWidth], step):
+    for y in range(haystackHeight):  # start at the leftmost column
+        for matchx in firstFindFunc(
+            needleImageFirstRow, haystackImageData[y * haystackWidth : (y + 1) * haystackWidth], step
+        ):
             foundMatch = True
             for searchy in range(1, needleHeight, step):
                 haystackStart = (searchy + y) * haystackWidth + matchx
-                if needleImageData[searchy * needleWidth:(searchy+1) * needleWidth] != haystackImageData[haystackStart:haystackStart + needleWidth]:
+                if (
+                    needleImageData[searchy * needleWidth : (searchy + 1) * needleWidth]
+                    != haystackImageData[haystackStart : haystackStart + needleWidth]
+                ):
                     foundMatch = False
                     break
             if foundMatch:
@@ -338,7 +365,6 @@ def _locateAll_python(needleImage, haystackImage, grayscale=None, limit=None, re
                     if haystackFileObj is not None:
                         haystackFileObj.close()
                     return
-
 
     # There was no limit or the limit wasn't reached, but close the file handles anyway.
     if needleFileObj is not None:
@@ -378,7 +404,9 @@ def locateOnScreen(image, minSearchTime=0, **kwargs):
     start = time.time()
     while True:
         try:
-            screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
+            screenshotIm = screenshot(
+                region=None
+            )  # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
             retVal = locate(image, screenshotIm, **kwargs)
             try:
                 screenshotIm.fp.close()
@@ -403,7 +431,9 @@ def locateAllOnScreen(image, **kwargs):
     """
 
     # TODO - Should this raise an exception if zero instances of the image can be found on the screen, instead of always returning a generator?
-    screenshotIm = screenshot(region=None) # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
+    screenshotIm = screenshot(
+        region=None
+    )  # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
     retVal = locateAll(image, screenshotIm, **kwargs)
     try:
         screenshotIm.fp.close()
@@ -471,7 +501,9 @@ def locateOnWindow(image, title, **kwargs):
     if len(matchingWindows) == 0:
         raise PyScreezeException('Could not find a window with %s in the title' % (title))
     elif len(matchingWindows) > 1:
-        raise PyScreezeException('Found multiple windows with %s in the title: %s' % (title, [str(win) for win in matchingWindows]))
+        raise PyScreezeException(
+            'Found multiple windows with %s in the title: %s' % (title, [str(win) for win in matchingWindows])
+        )
 
     win = matchingWindows[0]
     win.activate()
@@ -483,7 +515,7 @@ def screenshotWindow(title):
     """
     TODO
     """
-    pass # Not implemented yet.
+    pass  # Not implemented yet.
 
 
 @requiresPillow
@@ -494,7 +526,12 @@ def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen
     # TODO - This function is useful! Document it!
     screenshotIm = screenshot()
     draw = ImageDraw.Draw(screenshotIm)
-    region = (region[0], region[1], region[2] + region[0], region[3] + region[1]) # convert from (left, top, right, bottom) to (left, top, width, height)
+    region = (
+        region[0],
+        region[1],
+        region[2] + region[0],
+        region[3] + region[1],
+    )  # convert from (left, top, right, bottom) to (left, top, width, height)
     draw.rectangle(region, outline=outlineColor)
     screenshotIm.save(filename)
 
@@ -536,7 +573,7 @@ def _screenshot_osx(imageFilename=None, region=None):
             assert len(region) == 4, 'region argument must be a tuple of four ints'
             region = [int(x) for x in region]
             im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-            os.unlink(tmpFilename) # delete image of entire screen to save cropped version
+            os.unlink(tmpFilename)  # delete image of entire screen to save cropped version
             im.save(tmpFilename)
         else:
             # force loading before unlinking, Image.open() is lazy
@@ -558,7 +595,9 @@ def _screenshot_linux(imageFilename=None, region=None):
     # NOTE: scrot doesn't run correctly on Wayland, it only runs on x11.
 
     if not scrotExists:
-        raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
+        raise NotImplementedError(
+            '"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot'
+        )
     if imageFilename is None:
         tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
@@ -571,7 +610,7 @@ def _screenshot_linux(imageFilename=None, region=None):
             assert len(region) == 4, 'region argument must be a tuple of four ints'
             region = [int(x) for x in region]
             im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-            os.unlink(tmpFilename) # delete image of entire screen to save cropped version
+            os.unlink(tmpFilename)  # delete image of entire screen to save cropped version
             im.save(tmpFilename)
         else:
             # force loading before unlinking, Image.open() is lazy
@@ -581,11 +620,12 @@ def _screenshot_linux(imageFilename=None, region=None):
             os.unlink(tmpFilename)
         return im
     else:
-        raise Exception('The scrot program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot')
+        raise Exception(
+            'The scrot program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot'
+        )
 
 
-
-def _kmp(needle, haystack, _dummy): # Knuth-Morris-Pratt search algorithm implementation (to be used by screen capture)
+def _kmp(needle, haystack, _dummy):  # Knuth-Morris-Pratt search algorithm implementation (to be used by screen capture)
     """
     TODO
     """
@@ -593,16 +633,15 @@ def _kmp(needle, haystack, _dummy): # Knuth-Morris-Pratt search algorithm implem
     shifts = [1] * (len(needle) + 1)
     shift = 1
     for pos in range(len(needle)):
-        while shift <= pos and needle[pos] != needle[pos-shift]:
-            shift += shifts[pos-shift]
-        shifts[pos+1] = shift
+        while shift <= pos and needle[pos] != needle[pos - shift]:
+            shift += shifts[pos - shift]
+        shifts[pos + 1] = shift
 
     # do the actual search
     startPos = 0
     matchLen = 0
     for c in haystack:
-        while matchLen == len(needle) or \
-              matchLen >= 0 and needle[matchLen] != c:
+        while matchLen == len(needle) or matchLen >= 0 and needle[matchLen] != c:
             startPos += shifts[matchLen]
             matchLen -= shifts[matchLen]
         matchLen += 1
@@ -649,16 +688,25 @@ def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
     TODO
     """
     pix = pixel(x, y)
-    if len(pix) == 3 or len(expectedRGBColor) == 3: #RGB mode
+    if len(pix) == 3 or len(expectedRGBColor) == 3:  # RGB mode
         r, g, b = pix[:3]
         exR, exG, exB = expectedRGBColor[:3]
         return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance)
-    elif len(pix) == 4 and len(expectedRGBColor) == 4: #RGBA mode
+    elif len(pix) == 4 and len(expectedRGBColor) == 4:  # RGBA mode
         r, g, b, a = pix
         exR, exG, exB, exA = expectedRGBColor
-        return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance) and (abs(a - exA) <= tolerance)
+        return (
+            (abs(r - exR) <= tolerance)
+            and (abs(g - exG) <= tolerance)
+            and (abs(b - exB) <= tolerance)
+            and (abs(a - exA) <= tolerance)
+        )
     else:
-        assert False, 'Color mode was expected to be length 3 (RGB) or 4 (RGBA), but pixel is length %s and expectedRGBColor is length %s' % (len(pix), len(expectedRGBColor))
+        assert False, (
+            'Color mode was expected to be length 3 (RGB) or 4 (RGBA), but pixel is length %s and expectedRGBColor is length %s'
+            % (len(pix), len(expectedRGBColor))
+        )
+
 
 def pixel(x, y):
     """
@@ -666,13 +714,13 @@ def pixel(x, y):
     """
     if sys.platform == 'win32':
         # On Windows, calling GetDC() and GetPixel() is twice as fast as using our screenshot() function.
-        with __win32_openDC(0) as hdc: # handle will be released automatically
+        with __win32_openDC() as hdc:  # handle will be released automatically
             color = windll.gdi32.GetPixel(hdc, x, y)
             if color < 0:
                 raise WindowsError("windll.gdi32.GetPixel failed : return {}".format(color))
             # color is in the format 0xbbggrr https://msdn.microsoft.com/en-us/library/windows/desktop/dd183449(v=vs.85).aspx
-            bbggrr = "{:0>6x}".format(color) # bbggrr => 'bbggrr' (hex)
-            b, g, r = (int(bbggrr[i:i+2], 16) for i in range(0, 6, 2))
+            bbggrr = "{:0>6x}".format(color)  # bbggrr => 'bbggrr' (hex)
+            b, g, r = (int(bbggrr[i : i + 2], 16) for i in range(0, 6, 2))
             return (r, g, b)
     else:
         # Need to select only the first three values of the color in
@@ -682,15 +730,17 @@ def pixel(x, y):
 
 # set the screenshot() function based on the platform running this module
 if sys.platform.startswith('java'):
+    # Realistically, Jython will never be supported by PyScreeze.
     raise NotImplementedError('Jython is not yet supported by PyScreeze.')
 elif sys.platform == 'darwin':
     screenshot = _screenshot_osx
 elif sys.platform == 'win32':
     screenshot = _screenshot_win32
-else: # TODO - Make this more specific. "Anything else" does not necessarily mean "Linux".
+else:  
+    # Everything else is considered to be Linux.
     screenshot = _screenshot_linux
 
-grab = screenshot # for compatibility with Pillow/PIL's ImageGrab module.
+grab = screenshot  # for compatibility with Pillow/PIL's ImageGrab module.
 
 # set the locateAll function to use opencv if possible; python 3 needs opencv 3.0+
 # TODO - Should this raise an exception if zero instances of the image can be found on the screen, instead of always returning a generator?
