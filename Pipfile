@@ -12,6 +12,7 @@ sphinx = "*"
 ruff = "*"
 black = "*"
 mypy = "*"
+coverage = "*"
 
 [requires]
 python_version = "3.11"
