@@ -3,11 +3,14 @@ import sys
 import os
 import pyscreeze
 
-try:
-    from PIL import Image
-except:
-    # TODO - is there a graceful way around this problem?
-    raise Exception("Pillow is not installed. While PyScreeze doesn't require Pillow, the PyScreeze unit tests do.")
+scriptFolder = os.path.dirname(os.path.realpath(__file__))
+# Delete PIL.py, which is made by test_pillow_unavailable.py, just in case it
+# was left over from some incomplete run of that test.
+if os.path.exists(os.path.join(scriptFolder, 'PIL.py')):
+    os.unlink(os.path.join(scriptFolder, 'PIL.py'))
+
+from PIL import Image
+
 
 # Change the cwd to this file's folder, because that's where the test image files are located.
 scriptFolder = os.path.dirname(os.path.realpath(__file__))
@@ -16,13 +19,19 @@ os.chdir(scriptFolder)
 RUNNING_ON_PYTHON_2 = sys.version_info[0] == 2
 TEMP_FILENAME = '_delete_me.png'
 
-# Delete PIL.py, which is made by test_pillow_unavailable.py, just in case it
-# was left over from some incomplete run of that test.
-try:
-    os.unlink('PIL.py')
-except Exception:
-    pass
-
+# On Linux, figure out which window system is being used.
+if sys.platform.startswith('linux'):
+    RUNNING_X11 = False
+    RUNNING_WAYLAND = False
+    if os.environ.get('XDG_SESSION_TYPE') == 'x11':
+        RUNNING_X11 = True
+        RUNNING_WAYLAND = False
+    elif os.environ.get('XDG_SESSION_TYPE') == 'wayland':
+        RUNNING_WAYLAND = True
+        RUNNING_X11 = False
+    elif 'WAYLAND_DISPLAY' in os.environ:
+        RUNNING_WAYLAND = True
+        RUNNING_X11 = False
 
 # Helper functions to get current screen resolution on Windows, Mac OS X, or Linux.
 # Non-Windows platforms require additional modules:
@@ -35,22 +44,34 @@ def resolutionOSX():
 def resolutionX11():
     return _display.screen().width_in_pixels, _display.screen().height_in_pixels
 
+def resolutionWayland():
+    xrandrOutput = subprocess.run(['xrandr'], shell=True, capture_output=True, text=True).stdout
+    mo = re.search(r'current (\d+) x (\d+)', xrandrOutput)
+    if mo is None:
+        raise Exception('xrandr output does not list the wayland resolution. xrandr output:\n' + xrandrOutput)
+    return int(mo.group(1)), int(mo.group(2))
+
 def resolutionWin32():
     return (ctypes.windll.user32.GetSystemMetrics(0), ctypes.windll.user32.GetSystemMetrics(1))
 
 # Assign the resolution() function to the function appropriate for the platform.
-if sys.platform.startswith('java'):
-    raise NotImplementedError('Jython is not yet supported by PyScreeze.')
-elif sys.platform == 'darwin':
+if sys.platform == 'darwin':
     import Quartz
     resolution = resolutionOSX
 elif sys.platform == 'win32':
     import ctypes
     resolution = resolutionWin32
+elif sys.platform.startswith('linux'):
+    if RUNNING_X11:
+        from Xlib.display import Display
+        _display = Display(None)
+        resolution = resolutionX11
+    elif RUNNING_WAYLAND:
+        import subprocess
+        import re
+        resolution = resolutionWayland
 else:
-    from Xlib.display import Display
-    _display = Display(None)
-    resolution = resolutionX11
+    assert False, 'PyScreeze is not supported on platform ' + sys.platform
 
 
 # PNG file format magic numbers are 89 50 4E 47 0d 0a 1a 0a
@@ -273,10 +294,11 @@ class TestStressTest(unittest.TestCase):
         # On Windows, if I change PyScreeze away from Pillow and make win32 api calls directly but forget to release
         # the DCs (display contexts), the program would fail after about 90 or screenshots.
         # https://stackoverflow.com/questions/3586046/fastest-way-to-take-a-screenshot-with-python-on-windows
-        for i in range(200):
-            pyscreeze.screenshot(TEMP_FILENAME)
-            self.assertTrue(isPng(TEMP_FILENAME))
-            os.unlink(TEMP_FILENAME)
+        if sys.platform == 'win32':
+            for i in range(200):
+                pyscreeze.screenshot(TEMP_FILENAME)
+                self.assertTrue(isPng(TEMP_FILENAME))
+                os.unlink(TEMP_FILENAME)
 
 if __name__ == '__main__':
     unittest.main()

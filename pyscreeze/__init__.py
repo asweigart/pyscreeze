@@ -1,7 +1,7 @@
 # PyScreeze - PyScreeze is a simple, cross-platform screenshot module for Python 2 and 3.
 # By Al Sweigart al@inventwithpython.com
 
-__version__ = '0.1.29'
+__version__ = '0.1.30'
 
 import collections
 import datetime
@@ -20,19 +20,18 @@ from PIL import ImageDraw
 from PIL import __version__ as PIL__version__
 from PIL import ImageGrab
 
-useOpenCV: bool = False
+PILLOW_VERSION = tuple([int(x) for x in PIL__version__.split('.')])
+
+_useOpenCV: bool = False
 try:
     import cv2
     import numpy
 
-    useOpenCV = True
+    _useOpenCV = True
 except ImportError:
     pass  # This is fine, useOpenCV will stay as False.
 
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
-
-if not RUNNING_PYTHON_2:
-    unicode = str  # On Python 3, all the isinstance(spam, (str, unicode)) calls will work the same as Python 2.
 
 _PYGETWINDOW_UNAVAILABLE = True
 if sys.platform == 'win32':
@@ -52,7 +51,6 @@ if sys.platform == 'win32':
         _PYGETWINDOW_UNAVAILABLE = True
     else:
         _PYGETWINDOW_UNAVAILABLE = False
-    
 
 
 GRAYSCALE_DEFAULT = True
@@ -63,11 +61,24 @@ GRAYSCALE_DEFAULT = True
 # folks who would rather have it raise an exception.
 USE_IMAGE_NOT_FOUND_EXCEPTION = False
 
-scrotExists = False
+GNOMESCREENSHOT_EXISTS = False
 try:
-    if sys.platform not in ('java', 'darwin', 'win32'):
+    if sys.platform.startswith('linux'):
+        whichProc = subprocess.Popen(['which', 'gnome-screenshot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        GNOMESCREENSHOT_EXISTS = whichProc.wait() == 0
+except OSError as ex:
+    if ex.errno == errno.ENOENT:
+        # if there is no "which" program to find gnome-screenshot, then assume there
+        # is no gnome-screenshot.
+        pass
+    else:
+        raise
+
+SCROT_EXISTS = False
+try:
+    if sys.platform.startswith('linux'):
         whichProc = subprocess.Popen(['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        scrotExists = whichProc.wait() == 0
+        SCROT_EXISTS = whichProc.wait() == 0
 except OSError as ex:
     if ex.errno == errno.ENOENT:
         # if there is no "which" program to find scrot, then assume there
@@ -75,6 +86,20 @@ except OSError as ex:
         pass
     else:
         raise
+
+# On Linux, figure out which window system is being used.
+if sys.platform.startswith('linux'):
+    RUNNING_X11 = False
+    RUNNING_WAYLAND = False
+    if os.environ.get('XDG_SESSION_TYPE') == 'x11':
+        RUNNING_X11 = True
+        RUNNING_WAYLAND = False
+    elif os.environ.get('XDG_SESSION_TYPE') == 'wayland':
+        RUNNING_WAYLAND = True
+        RUNNING_X11 = False
+    elif 'WAYLAND_DISPLAY' in os.environ:
+        RUNNING_WAYLAND = True
+        RUNNING_X11 = False
 
 
 if sys.platform == 'win32':
@@ -153,7 +178,7 @@ def _load_cv2(img, grayscale=None):
 
     if grayscale is None:
         grayscale = GRAYSCALE_DEFAULT
-    if isinstance(img, (str, unicode)):
+    if isinstance(img, str):
         # The function imread loads an image from the specified file and
         # returns it. If the image cannot be read (because of missing
         # file, improper permissions, unsupported or invalid format),
@@ -251,13 +276,13 @@ def _locateAll_pillow(needleImage, haystackImage, grayscale=None, limit=None, re
         grayscale = GRAYSCALE_DEFAULT
 
     needleFileObj = None
-    if isinstance(needleImage, (str, unicode)):
+    if isinstance(needleImage, str):
         # 'image' is a filename, load the Image object
         needleFileObj = open(needleImage, 'rb')
         needleImage = Image.open(needleFileObj)
 
     haystackFileObj = None
-    if isinstance(haystackImage, (str, unicode)):
+    if isinstance(haystackImage, str):
         # 'image' is a filename, load the Image object
         haystackFileObj = open(haystackImage, 'rb')
         haystackImage = Image.open(haystackFileObj)
@@ -291,10 +316,10 @@ def _locateAll_pillow(needleImage, haystackImage, grayscale=None, limit=None, re
 
     assert (
         len(needleImageFirstRow) == needleWidth
-    ), 'For some reason, the calculated width of first row of the needle image is not the same as the width of the image.'
+    ), 'The calculated width of first row of the needle image is not the same as the width of the image.'
     assert [len(row) for row in needleImageRows] == [
         needleWidth
-    ] * needleHeight, 'For some reason, the needleImageRows aren\'t the same size as the original image.'
+    ] * needleHeight, 'The needleImageRows aren\'t the same size as the original image.'
 
     numMatchesFound = 0
 
@@ -351,7 +376,8 @@ def locate(needleImage, haystackImage, **kwargs):
     """
     TODO
     """
-    # Note: The gymnastics in this function is because we want to make sure to exhaust the iterator so that the needle and haystack files are closed in locateAll.
+    # Note: The gymnastics in this function is because we want to make sure to exhaust the iterator so that
+    # the needle and haystack files are closed in locateAll.
     kwargs['limit'] = 1
     points = tuple(locateAll(needleImage, haystackImage, **kwargs))
     if len(points) > 0:
@@ -372,9 +398,9 @@ def locateOnScreen(image, minSearchTime=0, **kwargs):
     start = time.time()
     while True:
         try:
-            screenshotIm = screenshot(
-                region=None
-            )  # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
+            # the locateAll() function must handle cropping to return accurate coordinates,
+            # so don't pass a region here.
+            screenshotIm = screenshot(region=None)
             retVal = locate(image, screenshotIm, **kwargs)
             try:
                 screenshotIm.fp.close()
@@ -398,10 +424,10 @@ def locateAllOnScreen(image, **kwargs):
     TODO
     """
 
-    # TODO - Should this raise an exception if zero instances of the image can be found on the screen, instead of always returning a generator?
-    screenshotIm = screenshot(
-        region=None
-    )  # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
+    # TODO - Should this raise an exception if zero instances of the image can be found on the
+    # screen, instead of always returning a generator?
+    # the locateAll() function must handle cropping to return accurate coordinates, so don't pass a region here.
+    screenshotIm = screenshot(region=None)
     retVal = locateAll(image, screenshotIm, **kwargs)
     try:
         screenshotIm.fp.close()
@@ -431,8 +457,7 @@ def locateOnScreenNear(image, x, y):
 
     foundMatchesBoxes = list(locateAllOnScreen(image))
 
-    # NOTE: distances actually contains the distances squared, since getting the square root is expensive and unnecessary
-    distances = []  # images[i] is related to distances[i]
+    distancesSquared = []  # images[i] is related to distancesSquared[i]
     shortestDistanceIndex = 0  # The index of the shortest distance in `distances`
 
     # getting distance of all points from given point
@@ -440,10 +465,10 @@ def locateOnScreenNear(image, x, y):
         foundMatchX, foundMatchY = center(foundMatchesBox)
         xDistance = abs(x - foundMatchX)
         yDistance = abs(y - foundMatchY)
-        distances.append(xDistance * xDistance + yDistance * yDistance)
+        distancesSquared.append(xDistance * xDistance + yDistance * yDistance)
 
-        if distances[-1] < distances[shortestDistanceIndex]:
-            shortestDistanceIndex = len(distances) - 1
+        if distancesSquared[-1] < distancesSquared[shortestDistanceIndex]:
+            shortestDistanceIndex = len(distancesSquared) - 1
 
     # Returns the Box object of the match closest to x, y
     return foundMatchesBoxes[shortestDistanceIndex]
@@ -524,7 +549,7 @@ def _screenshot_osx(imageFilename=None, region=None):
     TODO
     """
     # TODO - use tmp name for this file.
-    if tuple(PIL__version__) < (6, 2, 1):
+    if PILLOW_VERSION < (6, 2, 1):
         # Use the screencapture program if Pillow is older than 6.2.1, which
         # is when Pillow supported ImageGrab.grab() on macOS. (It may have
         # supported it earlier than 6.2.1, but I haven't tested it.)
@@ -558,37 +583,62 @@ def _screenshot_linux(imageFilename=None, region=None):
     TODO
     """
 
-    # NOTE: scrot doesn't run correctly on Wayland, it only runs on x11.
-
-    if not scrotExists:
-        raise NotImplementedError(
-            '"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot'
-        )
     if imageFilename is None:
         tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
         tmpFilename = imageFilename
-    if scrotExists:
-        subprocess.call(['scrot', '-z', tmpFilename])
-        im = Image.open(tmpFilename)
 
-        if region is not None:
-            assert len(region) == 4, 'region argument must be a tuple of four ints'
+    # Version 9.2.0 introduced using gnome-screenshot for ImageGrab.grab()
+    # on Linux, which is necessary to have screenshots work with Wayland
+    # (the replacement for x11.) Therefore, for 3.7 and later, PyScreeze
+    # uses/requires 9.2.0.
+    if PILLOW_VERSION >= (9, 2, 0) and GNOMESCREENSHOT_EXISTS:
+        # Pillow doesn't need tmpFilename because it works entirely in memory and doesn't
+        # need to save an image file to disk.
+        im = ImageGrab.grab()  # use Pillow's grab() for Pillow 9.2.0 and later.
+
+        if imageFilename is not None:
+            im.save(imageFilename)
+
+        if region is None:
+            # Return the full screenshot.
+            return im
+        else:
+            # Return just a region of the screenshot.
+            assert len(region) == 4, 'region argument must be a tuple of four ints'  # TODO fix this
             region = [int(x) for x in region]
             im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-            os.unlink(tmpFilename)  # delete image of entire screen to save cropped version
-            im.save(tmpFilename)
-        else:
-            # force loading before unlinking, Image.open() is lazy
-            im.load()
-
-        if imageFilename is None:
-            os.unlink(tmpFilename)
-        return im
+            return im
+    elif RUNNING_X11 and SCROT_EXISTS:  # scrot only runs on X11, not on Wayland.
+        # Even if gnome-screenshot exists, use scrot on X11 because gnome-screenshot
+        # has this annoying screen flash effect that you can't disable, but scrot does not.
+        subprocess.call(['scrot', '-z', tmpFilename])
+    elif GNOMESCREENSHOT_EXISTS:  # gnome-screenshot runs on Wayland and X11.
+        subprocess.call(['gnome-screenshot', '-f', tmpFilename])
+    elif RUNNING_WAYLAND and SCROT_EXISTS and not GNOMESCREENSHOT_EXISTS:
+        raise PyScreezeException(
+            'Your computer uses the Wayland window system. Scrot works on the X11 window system but not Wayland. You must install gnome-screenshot by running `sudo apt install gnome-screenshot`'  # noqa
+        )
     else:
         raise Exception(
-            'The scrot program must be installed to take a screenshot with PyScreeze on Linux. Run: sudo apt-get install scrot'
+            'To take screenshots, you must install Pillow version 9.2.0 or greater and gnome-screenshot by running `sudo apt install gnome-screenshot`'  # noqa
         )
+
+    im = Image.open(tmpFilename)
+
+    if region is not None:
+        assert len(region) == 4, 'region argument must be a tuple of four ints'
+        region = [int(x) for x in region]
+        im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+        os.unlink(tmpFilename)  # delete image of entire screen to save cropped version
+        im.save(tmpFilename)
+    else:
+        # force loading before unlinking, Image.open() is lazy
+        im.load()
+
+    if imageFilename is None:
+        os.unlink(tmpFilename)
+    return im
 
 
 def _kmp(needle, haystack, _dummy):  # Knuth-Morris-Pratt search algorithm implementation (to be used by screen capture)
@@ -651,7 +701,8 @@ def center(coords):
 
 def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
     """
-    TODO
+    Return True if the pixel at x, y is matches the expected color of the RGB
+    tuple, each color represented from 0 to 255, within an optional tolerance.
     """
     pix = pixel(x, y)
     if len(pix) == 3 or len(expectedRGBColor) == 3:  # RGB mode
@@ -669,14 +720,14 @@ def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
         )
     else:
         assert False, (
-            'Color mode was expected to be length 3 (RGB) or 4 (RGBA), but pixel is length %s and expectedRGBColor is length %s'
+            'Color mode was expected to be length 3 (RGB) or 4 (RGBA), but pixel is length %s and expectedRGBColor is length %s'  # noqa
             % (len(pix), len(expectedRGBColor))
         )
 
 
 def pixel(x, y):
     """
-    TODO
+    Return an RGB tuple, each color represented from 0 to 255, of the pixel at x, y.
     """
     if sys.platform == 'win32':
         # On Windows, calling GetDC() and GetPixel() is twice as fast as using our screenshot() function.
@@ -695,23 +746,22 @@ def pixel(x, y):
 
 
 # set the screenshot() function based on the platform running this module
-if sys.platform.startswith('java'):
-    # Realistically, Jython will never be supported by PyScreeze.
-    raise NotImplementedError('Jython is not yet supported by PyScreeze.')
-elif sys.platform == 'darwin':
+if sys.platform == 'darwin':
     screenshot = _screenshot_osx
 elif sys.platform == 'win32':
     screenshot = _screenshot_win32
-else:  
+elif sys.platform.startswith('linux'):
     # Everything else is considered to be Linux.
     screenshot = _screenshot_linux
+else:
+    raise NotImplementedError('PyScreeze is not supported on platform ' + sys.platform)
 
 
 # set the locateAll function to use opencv if possible; python 3 needs opencv 3.0+
-# TODO - Should this raise an exception if zero instances of the image can be found on the screen, instead of always returning a generator?
+# TODO - Should this raise an exception if zero instances of the image can be found
+# on the screen, instead of always returning a generator?
 locateAll = _locateAll_pillow
-if useOpenCV:
+if _useOpenCV:
     locateAll = _locateAll_opencv
     if not RUNNING_PYTHON_2 and cv2.__version__ < '3':
         locateAll = _locateAll_pillow
-

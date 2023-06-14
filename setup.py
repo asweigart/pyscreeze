@@ -43,7 +43,6 @@ setup(
                       'Pillow < 9.0.0, >= 8.3.2; python_version == "3.6"',  # 'Pillow < 9.0.0, >= 4.0.0; python_version == "3.6"',
                       'Pillow < 8.0.0, >= 3.2.0; python_version == "3.5"',
                       'Pillow < 6.0.0, >= 2.5.0; python_version == "3.4"',
-                      'pyscreenshot',
                       ],
     requires_python="!=2.*, !=3.0.*, !=3.1.*",  # Pillow library has never supported pre-2.7 or 3.0 or 3.1.
     keywords="screenshot screen screencap capture scrot screencapture image",
