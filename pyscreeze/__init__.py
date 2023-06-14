@@ -524,7 +524,11 @@ def _screenshot_osx(imageFilename=None, region=None):
     TODO
     """
     # TODO - use tmp name for this file.
-    if tuple(PIL__version__) < (6, 2, 1):
+    #Fixed error completely crashing _screenshot_osx
+    PIL__version__num = int(''.join(str(i) for i in PIL__version__ if isinstance(i, str) and i.isdigit()))
+    #Transfer tuple PIL__version__ to a 3-digit integer for comparison with 6.2.1
+    
+    if PIL__version__num < 621:
         # Use the screencapture program if Pillow is older than 6.2.1, which
         # is when Pillow supported ImageGrab.grab() on macOS. (It may have
         # supported it earlier than 6.2.1, but I haven't tested it.)
