@@ -19,7 +19,11 @@ from PIL import ImageOps
 from PIL import ImageDraw
 from PIL import __version__ as PIL__version__
 from PIL import ImageGrab
-
+try:
+    from pynput.mouse import Controller
+except ImportError:
+    print("Please install pynput")
+    
 useOpenCV: bool = False
 try:
     import cv2
@@ -552,8 +556,11 @@ def _screenshot_osx(imageFilename=None, region=None):
         if imageFilename is None:
             os.unlink(tmpFilename)
     else:
+        mouse = Controller()
+        mouse.move(5, -5)
         # Use ImageGrab.grab() to get the screenshot if Pillow version 6.3.2 or later is installed.
         im = ImageGrab.grab()
+        mouse.move(-5, 5)
     return im
 
 
