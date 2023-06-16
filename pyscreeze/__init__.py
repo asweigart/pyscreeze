@@ -584,7 +584,7 @@ def _screenshot_linux(imageFilename=None, region=None):
     """
 
     if imageFilename is None:
-        tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
+        tmpFilename = 'screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
         tmpFilename = imageFilename
 
