@@ -248,8 +248,11 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
 
     # get all matches at once, credit: https://stackoverflow.com/questions/7670112/finding-a-subimage-inside-a-numpy-image/9253805#9253805
     result = cv2.matchTemplate(haystackImage, needleImage, cv2.TM_CCOEFF_NORMED)
-    match_indices = numpy.arange(result.size)[(result > confidence).flatten()]
-    matches = numpy.unravel_index(match_indices[:limit], result.shape)
+    flattened_result = result.flatten()
+    positions = numpy.where(flattened_result > confidence)
+    sort_indexes = numpy.argsort(flattened_result[positions])[:limit]
+    match_indices = numpy.arange(result.size)[positions][sort_indexes]
+    matches = numpy.unravel_index(match_indices, result.shape)
 
     if len(matches[0]) == 0:
         if USE_IMAGE_NOT_FOUND_EXCEPTION:
