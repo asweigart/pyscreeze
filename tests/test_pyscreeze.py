@@ -260,6 +260,10 @@ class TestGeneral(unittest.TestCase):
         self.assertEqual((100, 100), pyscreeze.center((0, 0, 200, 200)))
         self.assertEqual((100, 100), pyscreeze.center((50, 50, 100, 100)))
 
+    def test_centerOfBox(self):
+        self.assertEqual((10, 10), pyscreeze.centerOfBox(pyscreeze.Box(0, 0, 20, 20)))
+        self.assertEqual((10, 10), pyscreeze.centerOfBox(pyscreeze.Box(5, 5, 10, 10)))
+
     """
     # Disabling step test; we don't use this feature because it does not bring any significant performance improvement.
     def test_locate_im_step(self):
