@@ -695,8 +695,24 @@ def center(coords):
     Point(x=14, y=15)
     """
 
-    # TODO - one day, add code to handle a Box namedtuple.
     return Point(coords[0] + int(coords[2] / 2), coords[1] + int(coords[3] / 2))
+
+
+def centerOfBox(box):
+    """
+    Returns a `Point` object with the x and y set to an integer determined by the center
+    of `box`.
+
+    The `box` argument is a `Box` namedtuple of (left, top, width, height).
+
+    For example:
+
+    >>> centerOfBox(Box(10, 10, 6, 8))
+    Point(x=13, y=14)
+    >>> centerOfBox(Box(40, 30, 12, 16))
+    Point(x=46, y=38)
+    """
+    return Point(box.left + box.width / 2, box.top + box.height / 2)
 
 
 def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
