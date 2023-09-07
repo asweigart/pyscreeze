@@ -549,7 +549,7 @@ def _screenshot_osx(imageFilename=None, region=None):
     TODO
     """
     # TODO - use tmp name for this file.
-    if PILLOW_VERSION < (6, 2, 1):
+    if tuple(map(int, PIL__version__.split("."))) < (6, 2, 1):
         # Use the screencapture program if Pillow is older than 6.2.1, which
         # is when Pillow supported ImageGrab.grab() on macOS. (It may have
         # supported it earlier than 6.2.1, but I haven't tested it.)
@@ -574,7 +574,10 @@ def _screenshot_osx(imageFilename=None, region=None):
             os.unlink(tmpFilename)
     else:
         # Use ImageGrab.grab() to get the screenshot if Pillow version 6.3.2 or later is installed.
-        im = ImageGrab.grab()
+        if region is not None:
+            im = ImageGrab.grab(bbox = (region[0],region[1],region[2]+region[0],region[3]+region[1])) #fixed for taking region
+        else:
+            im = ImageGrab.grab() #when region=None
     return im
 
 
