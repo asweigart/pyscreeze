@@ -907,7 +907,7 @@ def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
         return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance)
     # FIXME: This code path is unreachable since pixel() only returns RGB
     elif len(pix) == 4 and len(expectedRGBColor) == 4:  # RGBA mode
-        r, g, b, a = pix  # # pyright: ignore[reportGeneralTypeIssues]
+        r, g, b, a = pix  # pyright: ignore[reportGeneralTypeIssues]
         exR, exG, exB, exA = expectedRGBColor  # type: ignore[misc]
         return (
             (abs(r - exR) <= tolerance)
