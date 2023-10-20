@@ -963,6 +963,5 @@ else:
 locateAll = _locateAll_pillow
 if _useOpenCV:
     locateAll = _locateAll_opencv
-    # https://github.com/opencv/opencv/issues/23950
-    if not RUNNING_PYTHON_2 and cv2.__version__ < '3':  # type: ignore[attr-defined]
+    if not RUNNING_PYTHON_2 and cv2.__version__ < '3':
         locateAll = _locateAll_pillow
