@@ -59,9 +59,9 @@ GRAYSCALE_DEFAULT = True
 # instead of returning None. In hindsight, this change came too late, so I'm
 # changing it back to returning None. But I'm also including this option for
 # folks who would rather have it raise an exception.
-USE_IMAGE_NOT_FOUND_EXCEPTION = False
+USE_IMAGE_NOT_FOUND_EXCEPTION = False  # type: bool
 
-GNOMESCREENSHOT_EXISTS = False
+GNOMESCREENSHOT_EXISTS = False  # type: bool
 try:
     if sys.platform.startswith('linux'):
         whichProc = subprocess.Popen(['which', 'gnome-screenshot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -74,7 +74,7 @@ except OSError as ex:
     else:
         raise
 
-SCROT_EXISTS = False
+SCROT_EXISTS = False  # type: bool
 try:
     if sys.platform.startswith('linux'):
         whichProc = subprocess.Popen(['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -87,10 +87,10 @@ except OSError as ex:
     else:
         raise
 
+RUNNING_X11 = False  # type: bool
+RUNNING_WAYLAND = False  # type: bool
 # On Linux, figure out which window system is being used.
 if sys.platform.startswith('linux'):
-    RUNNING_X11 = False
-    RUNNING_WAYLAND = False
     if os.environ.get('XDG_SESSION_TYPE') == 'x11':
         RUNNING_X11 = True
         RUNNING_WAYLAND = False
@@ -127,11 +127,171 @@ if sys.platform == 'win32':
             windll.user32.ReleaseDC.argtypes = [ctypes.c_ssize_t, ctypes.c_ssize_t]
             if windll.user32.ReleaseDC(hWnd, hDC) == 0:
                 raise WindowsError("windll.user32.ReleaseDC failed : return 0")
+try:
+    from typing import TYPE_CHECKING
+except ImportError:
+    TYPE_CHECKING = False
 
+if TYPE_CHECKING:
+    from PIL import Image
+    import numpy
+    import cv2
+    from pathlib import Path
+    from typing import NamedTuple, TypeVar, SupportsFloat, overload, Union, Optional
+    try:
+        from typing_extensions import SupportsIndex, ParamSpec
+        _P = ParamSpec("_P")
+        _R = TypeVar("_R")
+    except ImportError:
+        from typing import SupportsIndex
+    try:
+        from collections.abc import Callable, Generator
+    except ImportError:
+        from typing import Callable, Generator
 
-Box = collections.namedtuple('Box', 'left top width height')
-Point = collections.namedtuple('Point', 'x y')
-RGB = collections.namedtuple('RGB', 'red green blue')
+    class Box(NamedTuple):
+        left: int
+        top: int
+        width: int
+        height: int
+
+    class Point(NamedTuple):
+        x: int
+        y: int
+
+    class RGB(NamedTuple):
+        red: int
+        green: int
+        blue: int
+
+    @overload
+    def locate(
+        needleImage: Union[str, Image.Image, numpy.ndarray[int, numpy.dtype[numpy.generic]]],
+        haystackImage: Union[str, Image.Image, numpy.ndarray[int, numpy.dtype[numpy.generic]]],
+        *,
+        grayscale: Optional[bool] = ...,
+        limit: object = ...,
+        region: Optional[tuple[int, int, int, int]] = ...,
+        step: int = ...,
+        confidence: Union[SupportsFloat, SupportsIndex, str] = ...,
+    ) -> Optional[Box]: ...
+
+    # _locateAll_python / _locateAll_pillow
+    @overload
+    def locate(
+        needleImage: Union[str, Image.Image],
+        haystackImage: Union[str, Image.Image],
+        *,
+        grayscale: Optional[bool] = ...,
+        limit: object = ...,
+        region: Optional[tuple[int, int, int, int]] = ...,
+        step: int = ...,
+        confidence: None = ...,
+    ) -> Optional[Box]: ...
+
+    # _locateAll_opencv
+    @overload
+    def locateOnScreen(
+        image: Union[str, Image.Image, numpy.ndarray[int, numpy.dtype[numpy.generic]]],
+        minSearchTime: float = ...,
+        *,
+        grayscale: Optional[bool] = ...,
+        limit: object = ...,
+        region: Optional[tuple[int, int, int, int]] = ...,
+        step: int = ...,
+        confidence: Union[SupportsFloat, SupportsIndex, str] = ...,
+    ) -> Optional[Box]: ...
+
+    # _locateAll_python / _locateAll_pillow
+    @overload
+    def locateOnScreen(
+        image: Union[str, Image.Image],
+        minSearchTime: float = ...,
+        *,
+        grayscale: Optional[bool] = ...,
+        limit: object = ...,
+        region: Optional[tuple[int, int, int, int]] = ...,
+        step: int = ...,
+        confidence: None = ...,
+    ) -> Optional[Box]: ...
+
+    # _locateAll_opencv
+    @overload
+    def locateAllOnScreen(
+        image: Union[str, Image.Image, numpy.ndarray[int, numpy.dtype[numpy.generic]]],
+        *,
+        grayscale: Optional[bool] = ...,
+        limit: int = ...,
+        region: Optional[tuple[int, int, int, int]] = ...,
+        step: int = ...,
+        confidence: Union[SupportsFloat, SupportsIndex, str] = ...,
+    ) -> Generator[Box, None, None]: ...
+
+    # _locateAll_python / _locateAll_pillow
+    @overload
+    def locateAllOnScreen(
+        image: Union[str, Image.Image],
+        *,
+        grayscale: Optional[bool] = ...,
+        limit: Optional[int] = ...,
+        region: Optional[tuple[int, int, int, int]] = ...,
+        step: int = ...,
+        confidence: None = ...,
+    ) -> Generator[Box, None, None]: ...
+
+    # _locateAll_opencv
+    @overload
+    def locateCenterOnScreen(
+        image: Union[str, Image.Image, numpy.ndarray[int, numpy.dtype[numpy.generic]]],
+        *,
+        minSearchTime: float,
+        grayscale: Optional[bool] = ...,
+        limit: object = ...,
+        region: Optional[tuple[int, int, int, int]] = ...,
+        step: int = ...,
+        confidence: Union[SupportsFloat, SupportsIndex, str] = ...,
+    ) -> Optional[Point]: ...
+
+    # _locateAll_python / _locateAll_pillow
+    @overload
+    def locateCenterOnScreen(
+        image: Union[str, Image.Image],
+        *,
+        minSearchTime: float,
+        grayscale: Optional[bool] = ...,
+        limit: object = ...,
+        region: Optional[tuple[int, int, int, int]] = ...,
+        step: int = ...,
+        confidence: None = ...,
+    ) -> Optional[Point]: ...
+
+    # _locateAll_opencv
+    @overload
+    def locateOnWindow(
+        image: Union[str, Image.Image, numpy.ndarray[int, numpy.dtype[numpy.generic]]],
+        title: str,
+        *,
+        grayscale: Optional[bool] = ...,
+        limit: object = ...,
+        step: int = ...,
+        confidence: Union[SupportsFloat, SupportsIndex, str] = ...,
+    ) -> Optional[Box]: ...
+
+    # _locateAll_python / _locateAll_pillow
+    @overload
+    def locateOnWindow(
+        image: Union[str, Image.Image],
+        title: str,
+        *,
+        grayscale: Optional[bool] = ...,
+        limit: object = ...,
+        step: int = ...,
+        confidence: None = ...,
+    ) -> Optional[Box]: ...
+else:
+    Box = collections.namedtuple('Box', 'left top width height')
+    Point = collections.namedtuple('Point', 'x y')
+    RGB = collections.namedtuple('RGB', 'red green blue')
 
 
 class PyScreezeException(Exception):
@@ -153,13 +313,17 @@ class ImageNotFoundException(PyScreezeException):
 
 
 def requiresPyGetWindow(wrappedFunction):
+    # type: (Callable[_P, _R]) -> Callable[_P, _R]
     """
     A decorator that marks a function as requiring PyGetWindow to be installed.
     This raises PyScreezeException if Pillow wasn't imported.
     """
 
     @functools.wraps(wrappedFunction)
-    def wrapper(*args, **kwargs):
+    def wrapper(
+        *args,  # type: _P.args
+        **kwargs  # type: _P.kwargs
+    ):
         if _PYGETWINDOW_UNAVAILABLE:
             raise PyScreezeException('The PyGetWindow package is required to use this function.')
         return wrappedFunction(*args, **kwargs)
@@ -211,7 +375,15 @@ def _load_cv2(img, grayscale=None):
     return img_cv
 
 
-def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, region=None, step=1, confidence=0.999):
+def _locateAll_opencv(
+    needleImage,  # type: str | Image.Image | numpy.ndarray[int, numpy.dtype[numpy.generic]]
+    haystackImage,  # type:  str | Image.Image | numpy.ndarray[int, numpy.dtype[numpy.generic]]
+    grayscale=None,  # type: bool | None
+    limit=10000,  # type: int
+    region=None,  # type: tuple[int, int, int, int] | None
+    step=1,  # type: int
+    confidence=0.999  # type: SupportsFloat | SupportsIndex | str
+):
     """
     TODO - rewrite this
         faster but more memory-intensive than pure python
@@ -227,27 +399,27 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
 
     confidence = float(confidence)
 
-    needleImage = _load_cv2(needleImage, grayscale)
-    needleHeight, needleWidth = needleImage.shape[:2]
-    haystackImage = _load_cv2(haystackImage, grayscale)
+    _needleImage = _load_cv2(needleImage, grayscale)
+    needleHeight, needleWidth = _needleImage.shape[:2]
+    _haystackImage = _load_cv2(haystackImage, grayscale)
 
     if region:
-        haystackImage = haystackImage[region[1] : region[1] + region[3], region[0] : region[0] + region[2]]
+        haystackImage = _haystackImage[region[1] : region[1] + region[3], region[0] : region[0] + region[2]]
     else:
-        region = (0, 0)  # full image; these values used in the yield statement
-    if haystackImage.shape[0] < needleImage.shape[0] or haystackImage.shape[1] < needleImage.shape[1]:
+        region = (0, 0, 0, 0)  # full image; these values used in the yield statement
+    if _haystackImage.shape[0] < _needleImage.shape[0] or _haystackImage.shape[1] < _needleImage.shape[1]:
         # avoid semi-cryptic OpenCV error below if bad size
         raise ValueError('needle dimension(s) exceed the haystack image or region dimensions')
 
     if step == 2:
         confidence *= 0.95
-        needleImage = needleImage[::step, ::step]
-        haystackImage = haystackImage[::step, ::step]
+        _needleImage = _needleImage[::step, ::step]
+        _haystackImage = _haystackImage[::step, ::step]
     else:
         step = 1
 
     # get all matches at once, credit: https://stackoverflow.com/questions/7670112/finding-a-subimage-inside-a-numpy-image/9253805#9253805
-    result = cv2.matchTemplate(haystackImage, needleImage, cv2.TM_CCOEFF_NORMED)
+    result = cv2.matchTemplate(_haystackImage, _needleImage, cv2.TM_CCOEFF_NORMED)
     match_indices = numpy.arange(result.size)[(result > confidence).flatten()]
     matches = numpy.unravel_index(match_indices[:limit], result.shape)
 
@@ -264,7 +436,15 @@ def _locateAll_opencv(needleImage, haystackImage, grayscale=None, limit=10000, r
         yield Box(x, y, needleWidth, needleHeight)
 
 
-def _locateAll_pillow(needleImage, haystackImage, grayscale=None, limit=None, region=None, step=1, confidence=None):
+def _locateAll_pillow(
+    needleImage,  # type: str | Image.Image
+    haystackImage,  # type: str | Image.Image
+    grayscale=None,  # type: bool | None
+    limit=None,  # type: int | None
+    region=None,  # type: tuple[int, int, int, int] | None
+    step=1,  # type: int
+    confidence=None  # type: None
+):
     """
     TODO
     """
@@ -290,7 +470,7 @@ def _locateAll_pillow(needleImage, haystackImage, grayscale=None, limit=None, re
     if region is not None:
         haystackImage = haystackImage.crop((region[0], region[1], region[0] + region[2], region[1] + region[3]))
     else:
-        region = (0, 0)  # set to 0 because the code always accounts for a region
+        region = (0, 0, 0, 0)  # set to 0 because the code always accounts for a region
 
     if grayscale:  # if grayscale mode is on, convert the needle and haystack images to grayscale
         needleImage = ImageOps.grayscale(needleImage)
@@ -372,7 +552,7 @@ def _locateAll_pillow(needleImage, haystackImage, grayscale=None, limit=None, re
             return
 
 
-def locate(needleImage, haystackImage, **kwargs):
+def locate(needleImage, haystackImage, **kwargs):  # type: ignore[no-redef]
     """
     TODO
     """
@@ -389,7 +569,7 @@ def locate(needleImage, haystackImage, **kwargs):
             return None
 
 
-def locateOnScreen(image, minSearchTime=0, **kwargs):
+def locateOnScreen(image, minSearchTime=0.0, **kwargs):  # type: ignore[no-redef]
     """TODO - rewrite this
     minSearchTime - amount of time in seconds to repeat taking
     screenshots and trying to locate a match.  The default of 0 performs
@@ -403,7 +583,7 @@ def locateOnScreen(image, minSearchTime=0, **kwargs):
             screenshotIm = screenshot(region=None)
             retVal = locate(image, screenshotIm, **kwargs)
             try:
-                screenshotIm.fp.close()
+                screenshotIm.fp.close()  # pyright: ignore[reportGeneralTypeIssues]
             except AttributeError:
                 # Screenshots on Windows won't have an fp since they came from
                 # ImageGrab, not a file. Screenshots on Linux will have fp set
@@ -419,7 +599,7 @@ def locateOnScreen(image, minSearchTime=0, **kwargs):
                     return None
 
 
-def locateAllOnScreen(image, **kwargs):
+def locateAllOnScreen(image, **kwargs): # type: ignore[no-redef]
     """
     TODO
     """
@@ -430,7 +610,7 @@ def locateAllOnScreen(image, **kwargs):
     screenshotIm = screenshot(region=None)
     retVal = locateAll(image, screenshotIm, **kwargs)
     try:
-        screenshotIm.fp.close()
+        screenshotIm.fp.close()  # pyright: ignore[reportGeneralTypeIssues]
     except AttributeError:
         # Screenshots on Windows won't have an fp since they came from
         # ImageGrab, not a file. Screenshots on Linux will have fp set
@@ -439,7 +619,7 @@ def locateAllOnScreen(image, **kwargs):
     return retVal
 
 
-def locateCenterOnScreen(image, **kwargs):
+def locateCenterOnScreen(image, **kwargs):  # type: ignore[no-redef]
     """
     TODO
     """
@@ -485,7 +665,7 @@ def locateCenterOnScreenNear(image, x, y, **kwargs):
         return center(coords)
 
 
-@requiresPyGetWindow
+@requiresPyGetWindow  # type: ignore[no-redef]
 def locateOnWindow(image, title, **kwargs):
     """
     TODO
@@ -511,7 +691,11 @@ def screenshotWindow(title):
     pass  # Not implemented yet.
 
 
-def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen.png'):
+def showRegionOnScreen(
+    region,  # type: tuple[int, int, int, int]
+    outlineColor='red',
+    filename='_showRegionOnScreen.png'
+):
     """
     TODO
     """
@@ -528,7 +712,10 @@ def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen
     screenshotIm.save(filename)
 
 
-def _screenshot_win32(imageFilename=None, region=None):
+def _screenshot_win32(
+    imageFilename=None,  # type: str | bytes | Path | None
+    region=None  # type: tuple[int, int, int, int] | None
+):
     """
     TODO
     """
@@ -537,14 +724,17 @@ def _screenshot_win32(imageFilename=None, region=None):
     im = ImageGrab.grab()
     if region is not None:
         assert len(region) == 4, 'region argument must be a tuple of four ints'
-        region = [int(x) for x in region]
+        region = tuple(int(x) for x in region)
         im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
     if imageFilename is not None:
         im.save(imageFilename)
     return im
 
 
-def _screenshot_osx(imageFilename=None, region=None):
+def _screenshot_osx(
+    imageFilename=None,  # type: str | bytes | Path | None
+    region=None  # type: tuple[int, int, int, int] | None
+):
     """
     TODO
     """
@@ -562,7 +752,7 @@ def _screenshot_osx(imageFilename=None, region=None):
 
         if region is not None:
             assert len(region) == 4, 'region argument must be a tuple of four ints'
-            region = [int(x) for x in region]
+            region = tuple(int(x) for x in region)
             im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
             os.unlink(tmpFilename)  # delete image of entire screen to save cropped version
             im.save(tmpFilename)
@@ -578,7 +768,10 @@ def _screenshot_osx(imageFilename=None, region=None):
     return im
 
 
-def _screenshot_linux(imageFilename=None, region=None):
+def _screenshot_linux(
+    imageFilename=None,  # type: str | bytes | Path | None
+    region=None  # type: tuple[int, int, int, int] | None
+):
     """
     TODO
     """
@@ -606,7 +799,7 @@ def _screenshot_linux(imageFilename=None, region=None):
         else:
             # Return just a region of the screenshot.
             assert len(region) == 4, 'region argument must be a tuple of four ints'  # TODO fix this
-            region = [int(x) for x in region]
+            region = tuple(int(x) for x in region)
             im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
             return im
     elif RUNNING_X11 and SCROT_EXISTS:  # scrot only runs on X11, not on Wayland.
@@ -628,7 +821,7 @@ def _screenshot_linux(imageFilename=None, region=None):
 
     if region is not None:
         assert len(region) == 4, 'region argument must be a tuple of four ints'
-        region = [int(x) for x in region]
+        region = tuple(int(x) for x in region)
         im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
         os.unlink(tmpFilename)  # delete image of entire screen to save cropped version
         im.save(tmpFilename)
@@ -679,7 +872,9 @@ def _steppingFind(needle, haystack, step):
             yield startPos
 
 
-def center(coords):
+def center(
+    coords  # type: tuple[int, int, int, int]
+):
     """
     Returns a `Point` object with the x and y set to an integer determined by the format of `coords`.
 
@@ -700,6 +895,7 @@ def center(coords):
 
 
 def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
+    # type: (int, int, Union[tuple[int, int, int], tuple[int, int, int, int]], int) -> bool
     """
     Return True if the pixel at x, y is matches the expected color of the RGB
     tuple, each color represented from 0 to 255, within an optional tolerance.
@@ -709,9 +905,10 @@ def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
         r, g, b = pix[:3]
         exR, exG, exB = expectedRGBColor[:3]
         return (abs(r - exR) <= tolerance) and (abs(g - exG) <= tolerance) and (abs(b - exB) <= tolerance)
+    # FIXME: This code path is unreachable since pixel() only returns RGB
     elif len(pix) == 4 and len(expectedRGBColor) == 4:  # RGBA mode
-        r, g, b, a = pix
-        exR, exG, exB, exA = expectedRGBColor
+        r, g, b, a = pix  # pyright: ignore[reportGeneralTypeIssues]
+        exR, exG, exB, exA = expectedRGBColor  # type: ignore[misc]
         return (
             (abs(r - exR) <= tolerance)
             and (abs(g - exG) <= tolerance)
@@ -725,7 +922,10 @@ def pixelMatchesColor(x, y, expectedRGBColor, tolerance=0):
         )
 
 
-def pixel(x, y):
+def pixel(
+    x,  # type: int
+    y  # type: int
+):
     """
     Return an RGB tuple, each color represented from 0 to 255, of the pixel at x, y.
     """
