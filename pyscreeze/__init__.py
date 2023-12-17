@@ -534,7 +534,7 @@ def _screenshot_win32(imageFilename=None, region=None):
     """
     # TODO - Use the winapi to get a screenshot, and compare performance with ImageGrab.grab()
     # https://stackoverflow.com/a/3586280/1893164
-    im = ImageGrab.grab()
+    im = ImageGrab.grab(all_screens=True)
     if region is not None:
         assert len(region) == 4, 'region argument must be a tuple of four ints'
         region = [int(x) for x in region]
@@ -574,7 +574,7 @@ def _screenshot_osx(imageFilename=None, region=None):
             os.unlink(tmpFilename)
     else:
         # Use ImageGrab.grab() to get the screenshot if Pillow version 6.3.2 or later is installed.
-        im = ImageGrab.grab()
+        im = ImageGrab.grab(all_screens=True)
     return im
 
 
@@ -595,7 +595,7 @@ def _screenshot_linux(imageFilename=None, region=None):
     if PILLOW_VERSION >= (9, 2, 0) and GNOMESCREENSHOT_EXISTS:
         # Pillow doesn't need tmpFilename because it works entirely in memory and doesn't
         # need to save an image file to disk.
-        im = ImageGrab.grab()  # use Pillow's grab() for Pillow 9.2.0 and later.
+        im = ImageGrab.grab(all_screens=True)  # use Pillow's grab() for Pillow 9.2.0 and later.
 
         if imageFilename is not None:
             im.save(imageFilename)
