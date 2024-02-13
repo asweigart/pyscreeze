@@ -538,7 +538,7 @@ def _screenshot_win32(imageFilename=None, region=None):
     if region is not None:
         assert len(region) == 4, 'region argument must be a tuple of four ints'
         region = [int(x) for x in region]
-        im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+        im = im.crop((region[0], region[1], region[2], region[3]))
     if imageFilename is not None:
         im.save(imageFilename)
     return im
@@ -563,7 +563,7 @@ def _screenshot_osx(imageFilename=None, region=None):
         if region is not None:
             assert len(region) == 4, 'region argument must be a tuple of four ints'
             region = [int(x) for x in region]
-            im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+            im = im.crop((region[0], region[1], region[2], region[3]))
             os.unlink(tmpFilename)  # delete image of entire screen to save cropped version
             im.save(tmpFilename)
         else:
@@ -607,7 +607,7 @@ def _screenshot_linux(imageFilename=None, region=None):
             # Return just a region of the screenshot.
             assert len(region) == 4, 'region argument must be a tuple of four ints'  # TODO fix this
             region = [int(x) for x in region]
-            im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+            im = im.crop((region[0], region[1], region[2], region[3]))
             return im
     elif RUNNING_X11 and SCROT_EXISTS:  # scrot only runs on X11, not on Wayland.
         # Even if gnome-screenshot exists, use scrot on X11 because gnome-screenshot
@@ -629,7 +629,7 @@ def _screenshot_linux(imageFilename=None, region=None):
     if region is not None:
         assert len(region) == 4, 'region argument must be a tuple of four ints'
         region = [int(x) for x in region]
-        im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+        im = im.crop((region[0], region[1], region[2], region[3]))
         os.unlink(tmpFilename)  # delete image of entire screen to save cropped version
         im.save(tmpFilename)
     else:
