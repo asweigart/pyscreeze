@@ -1,7 +1,7 @@
 # PyScreeze - PyScreeze is a simple, cross-platform screenshot module for Python 2 and 3.
 # By Al Sweigart al@inventwithpython.com
 
-__version__ = '0.1.30'
+__version__ = '0.1.31'
 
 import collections
 import datetime
