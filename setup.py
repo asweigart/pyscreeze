@@ -35,7 +35,8 @@ setup(
     # necessary to have screenshots work with Wayland (the
     # replacement for x11.) Therefore, for 3.7 and later, PyScreeze
     # requires 9.2.0.
-    install_requires=['Pillow >= 9.3.0; python_version == "3.11"',
+    install_requires=['Pillow >= 10.1.0; python_version == "3.12"',
+                      'Pillow >= 9.3.0; python_version == "3.11"',
                       'Pillow >= 9.2.0; python_version == "3.10"',
                       'Pillow >= 9.2.0; python_version == "3.9"',  # 'Pillow >= 8.0.0; python_version == "3.9"',
                       'Pillow >= 9.2.0; python_version == "3.8"',  # 'Pillow >= 6.2.1; python_version == "3.8"',
@@ -64,6 +65,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3 :: Only",
     ],
 )
