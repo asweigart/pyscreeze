@@ -606,7 +606,6 @@ def _screenshot_linux(imageFilename=None, region=None):
             im.save(imageFilename)
         # Return the screenshot.
         return im
-
     elif RUNNING_X11 and SCROT_EXISTS:  # scrot only runs on X11, not on Wayland.
         # Even if gnome-screenshot exists, use scrot on X11 because gnome-screenshot
         # has this annoying screen flash effect that you can't disable, but scrot does not.
