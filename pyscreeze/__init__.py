@@ -487,11 +487,11 @@ def locateCenterOnScreenNear(image, x, y, **kwargs):
 
 
 @requiresPyGetWindow
-def locateOnWindow(image, title, **kwargs):
+def locateOnWindow(image, title, equal_or_in='in', **kwargs):
     """
     TODO
     """
-    matchingWindows = pygetwindow.getWindowsWithTitle(title)
+    matchingWindows = pygetwindow.getWindowsWithTitle(title, equal_or_in=equal_or_in)
     if len(matchingWindows) == 0:
         raise PyScreezeException('Could not find a window with %s in the title' % (title))
     elif len(matchingWindows) > 1:
