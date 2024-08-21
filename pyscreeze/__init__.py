@@ -602,17 +602,18 @@ def _screenshot_linux(imageFilename=None, region=None):
         # need to save an image file to disk.
         im = ImageGrab.grab()  # use Pillow's grab() for Pillow 9.2.0 and later.
 
-        if imageFilename is not None:
-            im.save(imageFilename)
-
         if region is None:
             # Return the full screenshot.
+            if imageFilename is not None:
+                im.save(imageFilename)
             return im
         else:
             # Return just a region of the screenshot.
             assert len(region) == 4, 'region argument must be a tuple of four ints'  # TODO fix this
             assert isinstance(region[0], int) and isinstance(region[1], int) and isinstance(region[2], int) and isinstance(region[3], int), 'region argument must be a tuple of four ints'
             im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
+            if imageFilename is not None:
+                im.save(imageFilename)
             return im
     elif RUNNING_X11 and SCROT_EXISTS:  # scrot only runs on X11, not on Wayland.
         # Even if gnome-screenshot exists, use scrot on X11 because gnome-screenshot
