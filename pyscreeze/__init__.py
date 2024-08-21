@@ -440,6 +440,13 @@ def locateAllOnScreen(image, **kwargs):
     return retVal
 
 
+def locateCenterAllOnScreen(image, **kwargs):
+    """Locate the centers of all instances of an image on the screen."""
+    all_coords = locateAllOnScreen(image, **kwargs)
+    centers = [center(coords) for coords in all_coords]
+    return centers if centers else None
+
+
 def locateCenterOnScreen(image, **kwargs):
     """
     TODO
