@@ -1,19 +1,21 @@
 PyScreeze
 =========
 
-PyScreeze is a simple, cross-platform screenshot module for Python 2 and 3.
+PyScreeze is a simple, cross-platform screenshot module for Python 3.
 
 About
 -----
 
-PyScreeze can take screenshots, save them to files, and locate images within the screen. This is useful if you have a small image of, say, a button that needs to be clicked and want to locate it on the screen.
+PyScreeze can take screenshots, save them to files, and locates images within the screen. This is useful if you have a small image of, say, a button that needs to be clicked and want to locate it on the screen.
 
-Screenshot functionality requires the Pillow module. OS X uses the `screencapture` command, which comes with the operating system. Linux uses the `scrot` command, which can be installed by running `sudo apt-get install scrot`.
+NOTE - PyScreeze depends on Pillow for screenshots, whose older versions have security issues. The only secure versions of Pillow are 8.3.2 and later. However, Pillow 8.3.2 only supports Python as far back as Python 3.6. If you are installing PyScreeze for Python 3.5 or earlier, be aware that there may be security issues with the version of Pillow it uses.
+
+If Pillow is unavailable, there are fallback methods for each OS (screencapture for macOS, gnome-screenshot for Linux, etc.)
 
 Special Notes About Ubuntu
 ==========================
 
-Unfortunately, Ubuntu seems to have several deficiencies with installing Pillow. PNG and JPEG support are not included with Pillow out of the box on Ubuntu. The following links have more information
+If your Ubuntu system uses the older X11 window system, you must install Xlib by running `sudo apt install python3-xlib`. This will require the admin password for your computer.
 
 The screenshot() Function
 =========================
@@ -34,22 +36,22 @@ There is also an optional `region` keyword argument, if you do not want a screen
 The Locate Functions
 ====================
 
-You can visually locate something on the screen if you have an image file of it. You can call the `locateOnScreen('calc7key.png')` function to get the screen coordinates of the 7 button for a calculator app. The return value is a 4-integer tuple: (left, top, width, height). This tuple can be passed to `center()` to get the X and Y coordinates at the center of this region. If the image can't be found on the screen, `locateOnScreen()` returns `None`.
+You can visually locate something on the screen if you have an image file of it. You can call the `locateOnScreen('calc7key.png')` function to get the screen coordinates of the 7 button for a calculator app. The return value is a 4-integer tuple: (left, top, width, height). This tuple can be passed to `center()` to get the X and Y coordinates at the center of this region. If the image can't be found on the screen, `locateOnScreen()` returns `None`. (PyAutoGUI is a module that simulates mouse clicks.)
 
-    >>> import pyscreeze
+    >>> import pyscreeze, pyautogui
     >>> button7location = pyscreeze.locateOnScreen('calc7key.png')
     >>> button7location
     (1416, 562, 50, 41)
     >>> button7x, button7y = pyscreeze.center(button7location)
     >>> button7x, button7y
     (1441, 582)
-    >>> pyscreeze.click(button7x, button7y)  # clicks the center of where the 7 button was found
+    >>> pyautogui.click(button7x, button7y)  # clicks the center of where the 7 button was found
 
 The `locateCenterOnScreen()` function is probably the one you want to use most often:
 
-    >>> import pyscreeze
+    >>> import pyscreeze, pyautogui
     >>> x, y = pyscreeze.locateCenterOnScreen('calc7key.png')
-    >>> pyscreeze.click(x, y)
+    >>> pyautogui.click(x, y)
 
 On a 1920 x 1080 screen, the locate function calls take about 1 or 2 seconds. This may be too slow for action video games, but works for most purposes and applications.
 
@@ -123,3 +125,8 @@ The optional `tolerance` keyword argument specifies how much each of the red, gr
     False
     >>> pyscreeze.pixelMatchesColor(100, 200, (140, 125, 134), tolerance=10)
     True
+
+Support
+-------
+
+If you find this project helpful and would like to support its development, [consider donating to its creator on Patreon](https://www.patreon.com/AlSweigart).

@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta:__legacy__"
+
+[tool.ruff]
+line-length = 120
+
+[tool.black]
+line-length = 120
+skip-string-normalization = true

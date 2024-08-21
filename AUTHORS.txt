@@ -12,9 +12,13 @@ Davee Nguyen https://github.com/daveenguyen
 David O'Gwynn https://github.com/dogwynn
 ijknabla https://github.com/ijknabla
 Jeremy R. Gray https://github.com/jeremygray
+John Hendy https://github.com/jwhendy
 Jon Winsley https://github.com/glitchassassin
 Julien Schueller https://github.com/jschueller
 Lauritz Thaulow https://github.com/LauritzThaulow
 Rob Putt https://github.com/robputt796
+Samik Saraswat https://github.com/samik3301
+Shaheer Sarfaraz https://github.com/DaKheera47
+socal-nerdtastic https://github.com/socal-nerdtastic
 vorstrelok https://github.com/vorstrelok
 zerocewl https://github.com/zerocewl
