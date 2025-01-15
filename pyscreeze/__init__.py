@@ -63,10 +63,17 @@ GRAYSCALE_DEFAULT = True
 USE_IMAGE_NOT_FOUND_EXCEPTION = True
 
 GNOMESCREENSHOT_EXISTS = False
+SPECTACLE_EXISTS = False
+GAMESCOPE_DBUS_EXISTS = False
 try:
     if sys.platform.startswith('linux'):
         whichProc = subprocess.Popen(['which', 'gnome-screenshot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         GNOMESCREENSHOT_EXISTS = whichProc.wait() == 0
+        whichProc = subprocess.Popen(["which", "spectacle"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        SPECTACLE_EXISTS = whichProc.wait() == 0
+        busctlProc = subprocess.Popen(["which", "busctl"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        whichProc = subprocess.Popen(["which", "gamescope-dbus"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        GAMESCOPE_DBUS_EXISTS = whichProc.wait() == 0 and busctlProc.wait() == 0
 except OSError as ex:
     if ex.errno == errno.ENOENT:
         # if there is no "which" program to find gnome-screenshot, then assume there
@@ -593,11 +600,29 @@ def _screenshot_linux(imageFilename=None, region=None):
     else:
         tmpFilename = imageFilename
 
+    if os.environ.get("PYSCREEZE_USE_GAMESCOPE", "0") == "1":
+        if GAMESCOPE_DBUS_EXISTS:
+            subprocess.call([
+                "busctl",
+                "--user",
+                "call",
+                "org.shadowblip.Gamescope",
+                "/org/shadowblip/Gamescope/Wayland0",
+                "org.shadowblip.Gamescope.Wayland",
+                "TakeScreenshot",
+                "sy",
+                tmpFilename,
+                "0"
+            ])
+        else:
+            raise PyScreezeException(
+                "Gamescope method requested but gamescope-dbus isn't installed"
+            )
     # Version 9.2.0 introduced using gnome-screenshot for ImageGrab.grab()
     # on Linux, which is necessary to have screenshots work with Wayland
     # (the replacement for x11.) Therefore, for 3.7 and later, PyScreeze
     # uses/requires 9.2.0.
-    if PILLOW_VERSION >= (9, 2, 0) and GNOMESCREENSHOT_EXISTS:
+    elif PILLOW_VERSION >= (9, 2, 0) and GNOMESCREENSHOT_EXISTS:
         # Pillow doesn't need tmpFilename because it works entirely in memory and doesn't
         # need to save an image file to disk.
         im = ImageGrab.grab()  # use Pillow's grab() for Pillow 9.2.0 and later.
@@ -620,6 +645,9 @@ def _screenshot_linux(imageFilename=None, region=None):
         subprocess.call(['scrot', '-z', tmpFilename])
     elif GNOMESCREENSHOT_EXISTS:  # gnome-screenshot runs on Wayland and X11.
         subprocess.call(['gnome-screenshot', '-f', tmpFilename])
+    elif SPECTACLE_EXISTS:
+        # Use spectacle if it exists.
+        subprocess.call(["spectacle", "--current", "--nonotify", "--background", "--output", tmpFilename])
     elif RUNNING_WAYLAND and SCROT_EXISTS and not GNOMESCREENSHOT_EXISTS:
         raise PyScreezeException(
             'Your computer uses the Wayland window system. Scrot works on the X11 window system but not Wayland. You must install gnome-screenshot by running `sudo apt install gnome-screenshot`'  # noqa
