@@ -20,7 +20,7 @@ from PIL import ImageDraw
 from PIL import __version__ as PIL__version__
 from PIL import ImageGrab
 
-PILLOW_VERSION = tuple([int(x) for x in PIL__version__.split('.')])
+PILLOW_VERSION = tuple([int(x) for x in PIL__version__.split('.') if x.isnumeric()])
 
 _useOpenCV: bool = False
 try:
