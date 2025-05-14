@@ -65,12 +65,11 @@ USE_IMAGE_NOT_FOUND_EXCEPTION = True
 GNOMESCREENSHOT_EXISTS = False
 try:
     if sys.platform.startswith('linux'):
-        whichProc = subprocess.Popen(['which', 'gnome-screenshot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        whichProc = subprocess.Popen(['gnome-screenshot', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         GNOMESCREENSHOT_EXISTS = whichProc.wait() == 0
 except OSError as ex:
     if ex.errno == errno.ENOENT:
-        # if there is no "which" program to find gnome-screenshot, then assume there
-        # is no gnome-screenshot.
+        # no entry for gnome-screenshot
         pass
     else:
         raise
@@ -78,12 +77,11 @@ except OSError as ex:
 SCROT_EXISTS = False
 try:
     if sys.platform.startswith('linux'):
-        whichProc = subprocess.Popen(['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        whichProc = subprocess.Popen(['scrot', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         SCROT_EXISTS = whichProc.wait() == 0
 except OSError as ex:
     if ex.errno == errno.ENOENT:
-        # if there is no "which" program to find scrot, then assume there
-        # is no scrot.
+        # no entry for scrot
         pass
     else:
         raise
