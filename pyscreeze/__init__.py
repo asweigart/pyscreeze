@@ -7,10 +7,10 @@ import collections
 import datetime
 import functools
 import os
+import shutil
 import subprocess
 import sys
 import time
-import errno
 
 from contextlib import contextmanager
 
@@ -63,30 +63,12 @@ GRAYSCALE_DEFAULT = True
 USE_IMAGE_NOT_FOUND_EXCEPTION = True
 
 GNOMESCREENSHOT_EXISTS = False
-try:
-    if sys.platform.startswith('linux'):
-        whichProc = subprocess.Popen(['which', 'gnome-screenshot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        GNOMESCREENSHOT_EXISTS = whichProc.wait() == 0
-except OSError as ex:
-    if ex.errno == errno.ENOENT:
-        # if there is no "which" program to find gnome-screenshot, then assume there
-        # is no gnome-screenshot.
-        pass
-    else:
-        raise
+if sys.platform.startswith('linux'):
+    GNOMESCREENSHOT_EXISTS = shutil.which('gnome-screenshot') is not None
 
 SCROT_EXISTS = False
-try:
-    if sys.platform.startswith('linux'):
-        whichProc = subprocess.Popen(['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        SCROT_EXISTS = whichProc.wait() == 0
-except OSError as ex:
-    if ex.errno == errno.ENOENT:
-        # if there is no "which" program to find scrot, then assume there
-        # is no scrot.
-        pass
-    else:
-        raise
+if sys.platform.startswith('linux'):
+    SCROT_EXISTS = shutil.which('scrot') is not None
 
 # On Linux, figure out which window system is being used.
 if sys.platform.startswith('linux'):
