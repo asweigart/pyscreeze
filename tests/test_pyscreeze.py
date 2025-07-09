@@ -288,6 +288,55 @@ class TestGeneral(unittest.TestCase):
         colorNoiseFp.close()
         """
 
+class TestLocateOnScreenSkipRegions(unittest.TestCase):
+    def test_locateOnScreen_with_skip_regions(self):
+        """
+        This test verifies that the locateOnScreen function correctly respects the `skip_regions` parameter.
+
+        It does this by:
+        - Monkey-patching `pyscreeze.screenshot()` to always return `haystack2.png`,
+          so the test doesn't rely on actual screen contents.
+        - Verifying that without any blackout regions, the slash pattern is found at expected coordinates.
+        - Then applying a `skip_regions` blackout over the location where the slash pattern would appear,
+          and confirming that `locateOnScreen` returns None (i.e., it can no longer find the image).
+
+        It also temporarily sets `USE_IMAGE_NOT_FOUND_EXCEPTION = False` to ensure that 
+        the locate function returns `None` instead of raising an exception when the image isn't found.
+        """
+
+        # Save original screenshot function so we can restore it after test
+        original_screenshot = pyscreeze.screenshot
+        haystackIm = Image.open('haystack2.png')
+
+        try:
+            # Monkey patch screenshot() to always return our haystack image,
+            # simulating a static "screen capture" for predictable testing.
+            pyscreeze.screenshot = lambda *args, **kwargs: haystackIm.copy()
+
+            # Without blackout, we should successfully locate the slash in the haystack image.
+            result = pyscreeze.locateOnScreen('slash.png')
+            self.assertIsNotNone(result)
+            self.assertIn(result[0], (93, 94, 95))  # x coordinate variations
+            self.assertIn(result[1], (93, 94, 95))  # y coordinate variations
+
+            # Now apply a blackout region that covers the expected match area.
+            skip_regions = [(90, 90, 20, 20)]  
+
+            # Disable the exception so we can test returning None instead of raising.
+            pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = False
+
+            # Now, locating should fail and return None due to the blackout hiding the pattern.
+            result_blackout = pyscreeze.locateOnScreen('slash.png', skip_regions=skip_regions)
+            self.assertIsNone(result_blackout)
+
+        finally:
+            # Always restore the original state so other tests aren't affected.
+            pyscreeze.screenshot = original_screenshot
+            pyscreeze.USE_IMAGE_NOT_FOUND_EXCEPTION = True
+
+
+
+
 class TestStressTest(unittest.TestCase):
     def test_1000screenshots(self):
         # This test takes about two minutes for 200 screenshots.
