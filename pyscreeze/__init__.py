@@ -20,6 +20,8 @@ from PIL import ImageDraw
 from PIL import __version__ as PIL__version__
 from PIL import ImageGrab
 
+from typing import Any, Optional, List, Tuple
+
 PILLOW_VERSION = tuple([int(x) for x in PIL__version__.split('.')])
 
 _useOpenCV: bool = False
@@ -390,34 +392,55 @@ def locate(needleImage, haystackImage, **kwargs):
             return None
 
 
-def locateOnScreen(image, minSearchTime=0, **kwargs):
-    """TODO - rewrite this
-    minSearchTime - amount of time in seconds to repeat taking
-    screenshots and trying to locate a match.  The default of 0 performs
-    a single search.
+def locateOnScreen(
+        image: Any,
+        minSearchTime: float = 0,
+        skip_regions: Optional[List[Tuple[int, int, int, int]]] = None,
+        **kwargs
+    ) -> Optional[Tuple[int, int, int, int]]:
     """
-    start = time.time()
+    Continuously take screenshots and search for the given image on the screen
+    until it is found or the minimum search time has elapsed.
+
+    Args:
+        image: The image to locate. Can be a filepath or PIL image.
+        minSearchTime: Minimum duration in seconds to keep searching. Defaults to 0 (single attempt).
+        skip_regions: Optional list of (x, y, width, height) tuples to blackout on each screenshot.
+        **kwargs: Additional keyword arguments passed to the locate function.
+
+    Returns:
+        A tuple (left, top, width, height) of the first match found, or None if not found.
+
+    Raises:
+        ImageNotFoundException: If USE_IMAGE_NOT_FOUND_EXCEPTION is True and image is not found.
+    """
+    start_time = time.time()
+
     while True:
         try:
-            # the locateAll() function must handle cropping to return accurate coordinates,
-            # so don't pass a region here.
-            screenshotIm = screenshot(region=None)
-            retVal = locate(image, screenshotIm, **kwargs)
+            screenshot_img = screenshot(region=None)
+
+            if skip_regions:
+                screenshot_img = draw_blackout_regions(screenshot_img, skip_regions)
+
+            match = locate(image, screenshot_img, **kwargs)
+
+            # Explicitly close file pointers if the screenshot was loaded from file
             try:
-                screenshotIm.fp.close()
+                screenshot_img.fp.close()
             except AttributeError:
-                # Screenshots on Windows won't have an fp since they came from
-                # ImageGrab, not a file. Screenshots on Linux will have fp set
-                # to None since the file has been unlinked
                 pass
-            if retVal or time.time() - start > minSearchTime:
-                return retVal
+
+            if match or (time.time() - start_time) > minSearchTime:
+                return match
+
         except ImageNotFoundException:
-            if time.time() - start > minSearchTime:
+            if (time.time() - start_time) > minSearchTime:
                 if USE_IMAGE_NOT_FOUND_EXCEPTION:
                     raise
                 else:
                     return None
+
 
 
 def locateAllOnScreen(image, **kwargs):
@@ -511,6 +534,26 @@ def screenshotWindow(title):
     """
     pass  # Not implemented yet.
 
+def draw_blackout_regions(image: Image.Image, skip_regions: List[Tuple[int, int, int, int]]) -> Image.Image:
+    """
+    Draw blackout rectangles on the given image.
+
+    Args:
+        image: A PIL Image object to modify.
+        skip_regions: A list of (x, y, width, height) tuples specifying
+                      regions to fill with black.
+
+    Returns:
+        The modified PIL Image object with blackout regions applied.
+    """
+    if not skip_regions:
+        return image
+
+    draw = ImageDraw.Draw(image)
+    for (x, y, w, h) in skip_regions:
+        draw.rectangle([x, y, x + w, y + h], fill=(0, 0, 0))
+
+    return image
 
 def showRegionOnScreen(region, outlineColor='red', filename='_showRegionOnScreen.png'):
     """
