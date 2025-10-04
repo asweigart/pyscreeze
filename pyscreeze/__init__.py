@@ -580,6 +580,8 @@ def _screenshot_osx(imageFilename=None, region=None):
         else:
             # Get full screen for screenshot
             im = ImageGrab.grab()
+        if imageFilename is not None:
+            im.save(imageFilename)
     return im
 
 
