@@ -1,16 +1,21 @@
-# PyScreeze - PyScreeze is a simple, cross-platform screenshot module for Python 2 and 3.
-# By Al Sweigart al@inventwithpython.com
+"""PyScreeze
 
-__version__ = '1.0.0'
+PyScreeze is a simple, cross-platform screenshot module for Python 2 and 3.
+By Al Sweigart al@inventwithpython.com
+"""
+
+__version__ = '1.1.0'
 
 import collections
 import datetime
 import functools
+import io
 import os
+import platform
+import shutil
 import subprocess
 import sys
 import time
-import errno
 
 from contextlib import contextmanager
 
@@ -20,7 +25,7 @@ from PIL import ImageDraw
 from PIL import __version__ as PIL__version__
 from PIL import ImageGrab
 
-PILLOW_VERSION = tuple([int(x) for x in PIL__version__.split('.')])
+PILLOW_VERSION = tuple((int(x) for x in PIL__version__.split('.')))
 
 _useOpenCV: bool = False
 try:
@@ -33,8 +38,13 @@ except ImportError:
 
 RUNNING_PYTHON_2 = sys.version_info[0] == 2
 
-_PYGETWINDOW_UNAVAILABLE = True
-if sys.platform == 'win32':
+# The operating system platform this is running on
+PLATFORM = platform.system()
+
+# Linux path of fake stdout writable file for this process
+LINUX_STDOUT_FILE = "/proc/self/fd/1"
+
+if PLATFORM == "Windows":
     # On Windows, the monitor scaling can be set to something besides normal 100%.
     # PyScreeze and Pillow needs to account for this to make accurate screenshots.
     # TODO - How does macOS and Linux handle monitor scaling?
@@ -52,6 +62,10 @@ if sys.platform == 'win32':
     else:
         _PYGETWINDOW_UNAVAILABLE = False
 
+# Ensure this variable exists
+else:
+    _PYGETWINDOW_UNAVAILABLE = True
+
 
 GRAYSCALE_DEFAULT = True
 
@@ -62,48 +76,33 @@ GRAYSCALE_DEFAULT = True
 # For version 1.0.0, USE_IMAGE_NOT_FOUND_EXCEPTION is set to True by default.
 USE_IMAGE_NOT_FOUND_EXCEPTION = True
 
-GNOMESCREENSHOT_EXISTS = False
-try:
-    if sys.platform.startswith('linux'):
-        whichProc = subprocess.Popen(['which', 'gnome-screenshot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        GNOMESCREENSHOT_EXISTS = whichProc.wait() == 0
-except OSError as ex:
-    if ex.errno == errno.ENOENT:
-        # if there is no "which" program to find gnome-screenshot, then assume there
-        # is no gnome-screenshot.
-        pass
-    else:
-        raise
+if PLATFORM == "Linux":
+    # Check what screenshot utilities we have available
+    GNOMESCREENSHOT_EXISTS = bool(shutil.which('gnome-screenshot'))
+    SCROT_EXISTS = bool(shutil.which('scrot'))
+    SPECTACLE_EXISTS = bool(shutil.which('spectacle'))
 
-SCROT_EXISTS = False
-try:
-    if sys.platform.startswith('linux'):
-        whichProc = subprocess.Popen(['which', 'scrot'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        SCROT_EXISTS = whichProc.wait() == 0
-except OSError as ex:
-    if ex.errno == errno.ENOENT:
-        # if there is no "which" program to find scrot, then assume there
-        # is no scrot.
-        pass
-    else:
-        raise
-
-# On Linux, figure out which window system is being used.
-if sys.platform.startswith('linux'):
-    RUNNING_X11 = False
-    RUNNING_WAYLAND = False
+    # On Linux, figure out which window system is being used.
     if os.environ.get('XDG_SESSION_TYPE') == 'x11':
         RUNNING_X11 = True
         RUNNING_WAYLAND = False
-    elif os.environ.get('XDG_SESSION_TYPE') == 'wayland':
-        RUNNING_WAYLAND = True
-        RUNNING_X11 = False
-    elif 'WAYLAND_DISPLAY' in os.environ:
+    elif os.environ.get('XDG_SESSION_TYPE') == 'wayland' \
+            or 'WAYLAND_DISPLAY' in os.environ:
         RUNNING_WAYLAND = True
         RUNNING_X11 = False
 
+    else:
+        RUNNING_X11 = False
+        RUNNING_WAYLAND = False
 
-if sys.platform == 'win32':
+# Ensure these variables exist
+else:
+    GNOMESCREENSHOT_EXISTS = None
+    SCROT_EXISTS = None
+    SPECTACLE_EXISTS = None
+
+
+if PLATFORM == "Windows":
     from ctypes import windll
 
     # win32 DC(DeviceContext) Manager
@@ -311,7 +310,7 @@ def _locateAll_pillow(needleImage, haystackImage, grayscale=None, limit=None, re
     haystackImageData = tuple(haystackImage.getdata())
 
     needleImageRows = [
-        needleImageData[y * needleWidth : (y + 1) * needleWidth] for y in range(needleHeight)
+        needleImageData[y * needleWidth: (y + 1) * needleWidth] for y in range(needleHeight)
     ]  # LEFT OFF - check this
     needleImageFirstRow = needleImageRows[0]
 
@@ -583,15 +582,20 @@ def _screenshot_osx(imageFilename=None, region=None):
     return im
 
 
-def _screenshot_linux(imageFilename=None, region=None):
+def _screenshot_linux(imageFilename: str = None, region=None) -> Image:
     """
-    TODO
-    """
+    Take a screenshot on Linux
 
-    if imageFilename is None:
-        tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
-    else:
-        tmpFilename = imageFilename
+    Args:
+        imageFilename (str): The file name to save the image to if desired.
+            Defaults to None, do not save.
+        region (Sequence[int, int, int, int]): The cropping region, if desired.
+            Numbers are (top, left, width, height).
+            Defaults to None, return entire screen.
+
+    Returns:
+        screenshot (Image): The resulting pillow image screenshot.
+    """
 
     # Version 9.2.0 introduced using gnome-screenshot for ImageGrab.grab()
     # on Linux, which is necessary to have screenshots work with Wayland
@@ -601,48 +605,53 @@ def _screenshot_linux(imageFilename=None, region=None):
         # Pillow doesn't need tmpFilename because it works entirely in memory and doesn't
         # need to save an image file to disk.
         im = ImageGrab.grab()  # use Pillow's grab() for Pillow 9.2.0 and later.
+        cp = None  # A child process was not used
 
-        if imageFilename is not None:
-            im.save(imageFilename)
+    # We cannot use ImageGrab, resort to piping image data to stdout
 
-        if region is None:
-            # Return the full screenshot.
-            return im
-        else:
-            # Return just a region of the screenshot.
-            assert len(region) == 4, 'region argument must be a tuple of four ints'  # TODO fix this
-            assert isinstance(region[0], int) and isinstance(region[1], int) and isinstance(region[2], int) and isinstance(region[3], int), 'region argument must be a tuple of four ints'
-            im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-            return im
     elif RUNNING_X11 and SCROT_EXISTS:  # scrot only runs on X11, not on Wayland.
         # Even if gnome-screenshot exists, use scrot on X11 because gnome-screenshot
         # has this annoying screen flash effect that you can't disable, but scrot does not.
-        subprocess.call(['scrot', '-z', tmpFilename])
+        cp = subprocess.run(['scrot', '-z', LINUX_STDOUT_FILE], capture_output=True)
+
+    elif RUNNING_WAYLAND and SPECTACLE_EXISTS:  # Spectacle only works on Wayland, but has no annoying flash effect
+        cp = subprocess.run(['spectacle', '-bn', '-d', '0', '-o', LINUX_STDOUT_FILE], capture_output=True)
+
     elif GNOMESCREENSHOT_EXISTS:  # gnome-screenshot runs on Wayland and X11.
-        subprocess.call(['gnome-screenshot', '-f', tmpFilename])
-    elif RUNNING_WAYLAND and SCROT_EXISTS and not GNOMESCREENSHOT_EXISTS:
+        cp = subprocess.run(['gnome-screenshot', '-f', LINUX_STDOUT_FILE], capture_output=True)
+
+    elif RUNNING_WAYLAND and SCROT_EXISTS and not (GNOMESCREENSHOT_EXISTS or SPECTACLE_EXISTS):
         raise PyScreezeException(
-            'Your computer uses the Wayland window system. Scrot works on the X11 window system but not Wayland. You must install gnome-screenshot by running `sudo apt install gnome-screenshot`'  # noqa
+            'Your computer uses the Wayland window system. Scrot works on the X11 window system but not Wayland. You must install spectacle gnome-screenshot'  # noqa
         )
     else:
         raise Exception(
-            'To take screenshots, you must install Pillow version 9.2.0 or greater and gnome-screenshot by running `sudo apt install gnome-screenshot`'  # noqa
+            'To take screenshots, you must install Pillow version 9.2.0 or greater and gnome-screenshot, or spectacle'  # noqa
         )
 
-    im = Image.open(tmpFilename)
+    # Image data was piped to a child process's stdout
+    if cp:
+        buff = io.BytesIO(cp.stdout)
+        im = Image.open(buff)
 
+    # The user specified a cropping region
     if region is not None:
-        assert len(region) == 4, 'region argument must be a tuple of four ints'
-        assert isinstance(region[0], int) and isinstance(region[1], int) and isinstance(region[2], int) and isinstance(region[3], int), 'region argument must be a tuple of four ints'
-        im = im.crop((region[0], region[1], region[2] + region[0], region[3] + region[1]))
-        os.unlink(tmpFilename)  # delete image of entire screen to save cropped version
-        im.save(tmpFilename)
-    else:
-        # force loading before unlinking, Image.open() is lazy
-        im.load()
+        # Make sure the cropping region is valid
+        assert len(region) == 4 \
+            and False not in [isinstance(elem, int) for elem in region], \
+            'region argument must be a tuple of four ints'
 
-    if imageFilename is None:
-        os.unlink(tmpFilename)
+        im = im.crop((
+            region[0],
+            region[1],
+            region[2] + region[0],
+            region[3] + region[1],
+            ))
+
+    # The user specified a filename, save the image to disk
+    if imageFilename:
+        im.save(imageFilename)
+
     return im
 
 
@@ -751,7 +760,7 @@ def pixel(x, y):
         raise TypeError('pixel() has updated and no longer accepts a tuple of (x, y) values for the first argument. Pass these arguments as two separate arguments instead: pixel(x, y) instead of pixel((x, y))')
 
 
-    if sys.platform == 'win32':
+    if PLATFORM == "Windows":
         # On Windows, calling GetDC() and GetPixel() is twice as fast as using our screenshot() function.
         with __win32_openDC() as hdc:  # handle will be released automatically
             color = windll.gdi32.GetPixel(hdc, x, y)
@@ -770,9 +779,9 @@ def pixel(x, y):
 # set the screenshot() function based on the platform running this module
 if sys.platform == 'darwin':
     screenshot = _screenshot_osx
-elif sys.platform == 'win32':
+elif PLATFORM == "Windows":
     screenshot = _screenshot_win32
-elif sys.platform.startswith('linux'):
+elif PLATFORM == "Linux":
     # Everything else is considered to be Linux.
     screenshot = _screenshot_linux
 else:
