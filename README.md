@@ -10,7 +10,7 @@ PyScreeze can take screenshots, save them to files, and locates images within th
 
 NOTE - PyScreeze depends on Pillow for screenshots, whose older versions have security issues. The only secure versions of Pillow are 8.3.2 and later. However, Pillow 8.3.2 only supports Python as far back as Python 3.6. If you are installing PyScreeze for Python 3.5 or earlier, be aware that there may be security issues with the version of Pillow it uses.
 
-If Pillow is unavailable, there are fallback methods for each OS (screencapture for macOS, gnome-screenshot for Linux, etc.)
+If Pillow is unavailable, there are fallback methods for each OS (screencapture for macOS, one of scrot, spectacle, or gnome-screenshot for Linux, etc.)
 
 Special Notes About Ubuntu
 ==========================
@@ -26,7 +26,7 @@ Calling `screenshot()` will return an Image object (see the Pillow or PIL module
     >>> im1 = pyscreeze.screenshot()
     >>> im2 = pyscreeze.screenshot('my_screenshot.png')
 
-On a 1920 x 1080 screen, the `screenshot()` function takes roughly 100 milliseconds - it's not fast but it's not slow.
+On a 1920 x 1080 screen, the `screenshot()` function takes roughly 100 milliseconds for most utilities - it's not fast but it's not slow. For spectacle though, it takes around 650 milliseconds. This one is only recommended if you have no other option.
 
 There is also an optional `region` keyword argument, if you do not want a screenshot of the entire screen. You can pass a four-integer tuple of the left, top, width, and height of the region to capture:
 
