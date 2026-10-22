@@ -1,6 +1,56 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta:__legacy__"
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version"]
+name = "PyScreeze"
+dependencies = [
+	"Pillow>=9.2.0; python_version == '3.9' or python_version == '3.10'",
+	"Pillow>=9.3.0; python_version >= '3.11'",
+	"XLib; sys_platform == 'linux'",
+]
+requires-python = ">= 3.9"
+authors = [{name = "Al Sweigart", email = "al@inventwithpython.com"}]
+description = "A simple, cross-platform screenshot module for Python 3."
+readme = "README.md"
+license = "BSD-3-Clause"
+keywords = [
+	"screenshot",
+	"screen",
+	"screencap",
+	"capture",
+	"scrot",
+	"screencapture",
+	"image",
+]
+classifiers = [
+	"Development Status :: 4 - Beta",
+	"Environment :: Win32 (MS Windows)",
+	"Environment :: X11 Applications",
+	"Environment :: MacOS X",
+	"Intended Audience :: Developers",
+	"Operating System :: OS Independent",
+	"Programming Language :: Python",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3.9",
+	"Programming Language :: Python :: 3.10",
+	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
+	"Programming Language :: Python :: 3 :: Only",
+]
+
+[urls]
+Repository = "https://github.com/asweigart/pyscreeze"
+
+[tool.tox]
+requires = ["tox>=4.21"]
+env_list = ["3.13", "3.12", "3.11", "3.10", "3.9"]
+
+[tool.tox.env_run_base]
+description = "Test in {base_python}"
+pass_env = ["DISPLAY", "WAYLAND_DISPLAY", "XAUTHORITY", "XDG_SESSION_TYPE"]
+commands = [["python", "-m", "unittest", "discover", "-s", "tests"]]
 
 [tool.ruff]
 line-length = 120
